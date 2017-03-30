@@ -24,13 +24,92 @@
  */
 package org.spongepowered.obfuscation;
 
+import org.spongepowered.despector.ast.SourceSet;
+import org.spongepowered.despector.config.LibraryConfiguration;
+import org.spongepowered.despector.decompiler.Decompiler;
+import org.spongepowered.despector.decompiler.Decompilers;
+import org.spongepowered.despector.decompiler.JarWalker;
+import org.spongepowered.obfuscation.config.ObfConfigManager;
+import org.spongepowered.obfuscation.data.MappingsIO;
+import org.spongepowered.obfuscation.data.MappingsSet;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
+
 public class ObfuscationMapper {
 
-    public static void main(String[] args) {
+    private static final Map<String, Consumer<String>> flags = new HashMap<>();
+
+    static {
+        flags.put("--config=", (arg) -> {
+            String config = arg.substring(9);
+            Path config_path = Paths.get(".").resolve(config);
+            ObfConfigManager.load(config_path);
+        });
+    }
+
+    public static void main(String[] args) throws IOException {
         if (args.length == 0) {
             System.out.println("Usage: java -jar ObfuscationMapper.jar old.jar old_mappings_dir new.jar");
             return;
         }
+
+        LibraryConfiguration.quiet = true;
+
+        String old_jar = null;
+        String old_mappings_dir = null;
+        String new_jar = null;
+        int o = 0;
+        outer: for (int i = 0; i < args.length; i++) {
+            if (args[i].startsWith("-")) {
+                for (String flag : flags.keySet()) {
+                    if (args[i].startsWith(flag)) {
+                        flags.get(flag).accept(args[i]);
+                        continue outer;
+                    }
+                }
+                System.err.println("Unknown flag: " + args[i]);
+            } else if (o == 0) {
+                old_jar = args[i];
+            } else if (o == 1) {
+                old_mappings_dir = args[i];
+            } else if (o == 2) {
+                new_jar = args[i];
+            }
+            o++;
+        }
+
+        if (new_jar == null) {
+            System.out.println("Missing some args");
+            System.out.println("Usage: java -jar ObfuscationMapper.jar old.jar old_mappings_dir new.jar");
+            return;
+        }
+
+        Path root = Paths.get("");
+        Path old_mappings_root = root.resolve(old_mappings_dir).resolve("joined.srg");
+
+        if (!Files.exists(old_mappings_root)) {
+            System.err.println("Unknown mappings: " + old_mappings_root.toAbsolutePath().toString());
+            return;
+        }
+
+        Path old_jar_path = root.resolve(old_jar);
+        SourceSet old_sourceset = new SourceSet();
+        MappingsSet old_mappings = MappingsIO.load(old_mappings_root);
+        Path new_jar_path = root.resolve(new_jar);
+        SourceSet new_sourceset = new SourceSet();
+
+        Decompiler decompiler = Decompilers.JAVA;
+        JarWalker walker = new JarWalker(old_jar_path);
+        walker.walk(old_sourceset, decompiler);
+
+        System.out.println("Loaded and decompiled " + old_sourceset.getAllClasses().size() + " classes");
+
     }
 
 }

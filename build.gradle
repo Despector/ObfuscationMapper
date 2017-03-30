@@ -1,0 +1,113 @@
+plugins {
+    id 'java'
+    id 'maven'
+
+    id 'idea'
+    id 'eclipse'
+
+    id 'net.minecrell.licenser' version '0.3'
+    id 'com.github.johnrengelman.shadow' version '1.2.4'
+}
+
+defaultTasks 'clean', 'licenseFormat', 'build'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+group = 'org.spongepowered'
+archivesBaseName = project.name.toLowerCase()
+version = '0.1.0-SNAPSHOT'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven {
+        url "https://repo.voxelgenesis.com/artifactory/decompiler/"
+    }
+}
+
+// Common dependencies
+dependencies {
+    compile 'org.ow2.asm:asm-all:5.0.3'
+    compile 'com.google.guava:guava:18.0'
+    compile 'com.google.code.findbugs:jsr305:1.3.9'
+    compile 'ninja.leaping.configurate:configurate-hocon:3.2'
+    compile 'org.spongepowered:despector:0.1.0-SNAPSHOT'
+
+    testCompile 'junit:junit:4.11'
+    testCompile 'org.mockito:mockito-core:1.9.5'
+}
+
+// License header formatting
+license {
+    header file('LICENSE')
+    include '**/*.java'
+    newLine = false
+}
+
+// Source compiler configuration
+configure([compileJava, compileTestJava]) {
+    options.compilerArgs += ['-Xlint:all', '-Xlint:-path']
+    options.deprecation = true
+    options.encoding = 'UTF-8'
+}
+
+processResources {
+    // Include LICENSE in final JAR
+    from 'LICENSE'
+}
+
+// Set manifest entries
+jar {
+    classifier 'base'
+
+    manifest {
+        attributes(
+                'Built-By': System.properties['user.name'],
+                'Created-By': "${System.properties['java.vm.version']} (${System.properties['java.vm.vendor']})",
+                'Main-Class': "org.spongepowered.obfuscation.ObfuscationMapper"
+        )
+    }
+}
+
+shadowJar {
+    classifier ''
+
+    dependencies {
+        include(dependency('com.google.guava:guava'))
+        include(dependency('org.ow2.asm:asm-all'))
+        include(dependency('ninja.leaping.configurate:configurate-core'))
+        include(dependency('ninja.leaping.configurate:configurate-hocon'))
+        include(dependency('org.spongepowered:despector'))
+    }
+}
+
+task sourceJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+javadoc {
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.links(
+            'https://docs.oracle.com/javase/8/docs/api/'
+    )
+    // Disable the crazy super-strict doclint tool in Java 8
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives shadowJar
+    archives sourceJar
+    archives javadocJar
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.1'
+}

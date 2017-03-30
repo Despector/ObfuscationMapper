@@ -8,15 +8,15 @@ that map the obfuscated names to human readable names. And when the obuscated so
 update that changes the underlying obfuscation mappings then this tool can automatically remap your
 existing mappings to the updated names of the new version of the software.
 
-#Usage
+# Usage
 
 `java -jar ObfuscationMapper.jar <--config=obfuscationmapper.conf> [old.jar] [old_mappings] [new.jar]`
 
-#Mapping format
+# Mapping format
 
 ...
 
-#Issues
+# Issues
 
 Issues and feature requests can be opened in our [Issue Tracker].
 

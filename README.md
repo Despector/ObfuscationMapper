@@ -1,4 +1,4 @@
-Despector
+ObfuscationMapper
 ===========
 
 A tool for updating obfuscation mappings for new versions of a piece of obfuscated software.

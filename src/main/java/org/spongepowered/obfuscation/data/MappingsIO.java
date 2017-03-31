@@ -25,6 +25,7 @@
 package org.spongepowered.obfuscation.data;
 
 import com.google.common.collect.Lists;
+import org.spongepowered.obfuscation.config.ObfConfigManager;
 import org.spongepowered.obfuscation.data.MappingsSet.MethodMapping;
 
 import java.io.BufferedReader;
@@ -57,7 +58,7 @@ public final class MappingsIO {
         System.out.println("Loading mappings from " + deobf_data.toString());
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(deobf_data.toFile())))) {
             String line = null;
-            while ((line = reader.readLine()) != null) {
+            outer: while ((line = reader.readLine()) != null) {
                 if (line.startsWith(PACKAGE_LEADER)) {
                     line = line.substring(PACKAGE_LEADER.length());
                     String[] data = line.split(" ");
@@ -65,15 +66,19 @@ public final class MappingsIO {
                 } else if (line.startsWith(CLASS_LEADER)) {
                     line = line.substring(CLASS_LEADER.length());
                     String[] data = line.split(" ");
-                    if (data[1].startsWith("net/minecraft/client")) {
-                        continue;
+                    for (String ex : ObfConfigManager.getConfig().excluded_packages) {
+                        if (data[1].startsWith(ex)) {
+                            continue outer;
+                        }
                     }
                     mappings.addTypeMapping(data[0], data[1]);
                 } else if (line.startsWith(FIELD_LEADER)) {
                     line = line.substring(FIELD_LEADER.length());
                     String[] data = line.split(" ");
-                    if (data[1].startsWith("net/minecraft/client")) {
-                        continue;
+                    for (String ex : ObfConfigManager.getConfig().excluded_packages) {
+                        if (data[1].startsWith(ex)) {
+                            continue outer;
+                        }
                     }
                     String obf_name = data[0].substring(0, data[0].lastIndexOf('/'));
                     String obf_fld = data[0].substring(data[0].lastIndexOf('/') + 1, data[0].length());
@@ -82,8 +87,10 @@ public final class MappingsIO {
                 } else if (line.startsWith(METHOD_LEADER)) {
                     line = line.substring(METHOD_LEADER.length());
                     String[] data = line.split(" ");
-                    if (data[2].startsWith("net/minecraft/client")) {
-                        continue;
+                    for (String ex : ObfConfigManager.getConfig().excluded_packages) {
+                        if (data[1].startsWith(ex)) {
+                            continue outer;
+                        }
                     }
                     String obf_name = data[0].substring(0, data[0].lastIndexOf('/'));
                     String obf_mth = data[0].substring(data[0].lastIndexOf('/') + 1, data[0].length());

@@ -22,38 +22,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.obfuscation.config;
+package org.spongepowered.obfuscation.merge.data;
 
-import com.google.common.collect.Lists;
-import ninja.leaping.configurate.objectmapping.Setting;
-import ninja.leaping.configurate.objectmapping.serialize.ConfigSerializable;
+import org.spongepowered.despector.ast.type.TypeEntry;
 
-import java.util.ArrayList;
-import java.util.List;
+public class MatchEntry {
 
-/**
- * The global configuration.
- */
-public class ObfConfig {
+    private final TypeEntry old_type;
+    private final TypeEntry new_type;
 
-    @Setting(value = "excluded-packages", comment = "Packages to ignore")
-    public List<String> excluded_packages = new ArrayList<>();
+    public MatchEntry(TypeEntry old, TypeEntry n) {
+        this.old_type = old;
+        this.new_type = n;
+    }
 
-    @Setting(value = "merge-operations", comment = "Operations to perform")
-    public List<String> merge_operations = Lists.newArrayList("org.spongepowered.obfuscation.merge.operation.MatchStringConstants");
+    public TypeEntry getOldType() {
+        return this.old_type;
+    }
 
-    @Setting(value = "special-handlers", comment = "And special remapping handlers")
-    public List<SpecialHandler> special_handlers = new ArrayList<>();
-
-    @ConfigSerializable
-    public static class SpecialHandler {
-
-        @Setting(comment = "The internal names of types targeted by this handler")
-        public List<String> targets = new ArrayList<>();
-
-        @Setting(comment = "The class name of the handler for this set of targets")
-        public String handler;
-
+    public TypeEntry getNewType() {
+        return this.new_type;
     }
 
 }

@@ -22,38 +22,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.obfuscation.config;
+package org.spongepowered.obfuscation.merge;
 
-import com.google.common.collect.Lists;
-import ninja.leaping.configurate.objectmapping.Setting;
-import ninja.leaping.configurate.objectmapping.serialize.ConfigSerializable;
+public interface MergeOperation {
 
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * The global configuration.
- */
-public class ObfConfig {
-
-    @Setting(value = "excluded-packages", comment = "Packages to ignore")
-    public List<String> excluded_packages = new ArrayList<>();
-
-    @Setting(value = "merge-operations", comment = "Operations to perform")
-    public List<String> merge_operations = Lists.newArrayList("org.spongepowered.obfuscation.merge.operation.MatchStringConstants");
-
-    @Setting(value = "special-handlers", comment = "And special remapping handlers")
-    public List<SpecialHandler> special_handlers = new ArrayList<>();
-
-    @ConfigSerializable
-    public static class SpecialHandler {
-
-        @Setting(comment = "The internal names of types targeted by this handler")
-        public List<String> targets = new ArrayList<>();
-
-        @Setting(comment = "The class name of the handler for this set of targets")
-        public String handler;
-
-    }
+    void operate(MergeEngine set);
 
 }

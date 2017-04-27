@@ -31,15 +31,13 @@ import org.spongepowered.despector.decompiler.Decompilers;
 import org.spongepowered.despector.decompiler.DirectoryWalker;
 import org.spongepowered.despector.util.serialization.AstLoader;
 import org.spongepowered.despector.util.serialization.MessagePacker;
-import org.spongepowered.despector.util.serialization.MessagePrinter;
-import org.spongepowered.despector.util.serialization.MessageUnpacker;
 import org.spongepowered.obfuscation.config.ObfConfigManager;
 import org.spongepowered.obfuscation.data.MappingsIO;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.MergeEngine;
+import org.spongepowered.obfuscation.merge.operation.MatchStringConstants;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -54,12 +52,16 @@ public class ObfuscationMapper {
 
     private static final Map<String, Consumer<String>> flags = new HashMap<>();
     private static boolean is_cached = false;
+    private static String validation_mappings = null;
 
     static {
         flags.put("--config=", (arg) -> {
             String config = arg.substring(9);
             Path config_path = Paths.get(".").resolve(config);
             ObfConfigManager.load(config_path);
+        });
+        flags.put("--validation=", (arg) -> {
+            validation_mappings = arg.substring(13);
         });
         flags.put("--cache", (arg) -> {
             is_cached = true;
@@ -120,6 +122,16 @@ public class ObfuscationMapper {
         MappingsSet old_mappings = MappingsIO.load(old_mappings_root);
         MappingsSet new_mappings = new MappingsSet();
 
+        MappingsSet validation = null;
+        if (validation_mappings != null) {
+            Path validation_mappings_path = root.resolve(validation_mappings);
+            if (!Files.exists(validation_mappings_path)) {
+                System.err.println("Valdiation mappings " + validation_mappings + " not found");
+            } else {
+                validation = MappingsIO.load(validation_mappings_path);
+            }
+        }
+
         SourceSet old_sourceset = new SourceSet();
         SourceSet new_sourceset = new SourceSet();
 
@@ -170,10 +182,33 @@ public class ObfuscationMapper {
         }
 
         MergeEngine engine = new MergeEngine(old_sourceset, old_mappings, new_sourceset, new_mappings);
+
+        engine.addOperation(new MatchStringConstants());
+
         engine.merge();
 
+        System.out.println("Mapped " + new_mappings.packagesCount() + " packages");
+        System.out.println("Mapped " + new_mappings.typeCount() + " classes");
+        System.out.println("Mapped " + new_mappings.fieldCount() + " fields");
+        System.out.println("Mapped " + new_mappings.methodCount() + " methods");
+
+        int type_validation_errors = 0;
+
+        if (validation != null) {
+            for (String mapped : new_mappings.getMappedTypes()) {
+                String new_mapped = new_mappings.mapTypeSafe(mapped);
+                String val_mapped = validation.mapType(mapped);
+                if (!new_mapped.equals(val_mapped)) {
+                    System.out.println("Mapped " + mapped + " to " + new_mapped + " but should have been " + val_mapped);
+                    type_validation_errors++;
+                }
+            }
+        }
+
+        System.out.println("Type validation errors: " + type_validation_errors);
+
         Path mappings_out = root.resolve(output_mappings);
-        MappingsIO.write(mappings_out, new_mappings);
+        MappingsIO.write(mappings_out.toAbsolutePath(), new_mappings);
 
     }
 

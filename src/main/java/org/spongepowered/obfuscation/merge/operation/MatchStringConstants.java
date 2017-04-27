@@ -67,10 +67,14 @@ public class MatchStringConstants implements MergeOperation {
         for (TypeEntry type : set.getOldSourceSet().getAllClasses()) {
             walker.setType(type);
             for (MethodEntry mth : type.getMethods()) {
-                mth.getInstructions().accept(walker);
+                if (mth.getInstructions() != null) {
+                    mth.getInstructions().accept(walker);
+                }
             }
             for (MethodEntry mth : type.getStaticMethods()) {
-                mth.getInstructions().accept(walker);
+                if (mth.getInstructions() != null) {
+                    mth.getInstructions().accept(walker);
+                }
             }
         }
         Map<String, TypeEntry> old_unique = walker.getUniqueStringConstants();
@@ -78,10 +82,14 @@ public class MatchStringConstants implements MergeOperation {
         for (TypeEntry type : set.getNewSourceSet().getAllClasses()) {
             walker.setType(type);
             for (MethodEntry mth : type.getMethods()) {
-                mth.getInstructions().accept(walker);
+                if (mth.getInstructions() != null) {
+                    mth.getInstructions().accept(walker);
+                }
             }
             for (MethodEntry mth : type.getStaticMethods()) {
-                mth.getInstructions().accept(walker);
+                if (mth.getInstructions() != null) {
+                    mth.getInstructions().accept(walker);
+                }
             }
         }
         Map<String, TypeEntry> new_unique = walker.getUniqueStringConstants();
@@ -97,8 +105,7 @@ public class MatchStringConstants implements MergeOperation {
                 TypeEntry prev = matches.get(e.getValue());
                 if (prev == null) {
                     matches.put(e.getValue(), n);
-                }
-                if (prev != n) {
+                } else if (prev != n) {
                     no_match.add(e.getValue());
                     matches.remove(e.getValue());
                 }
@@ -106,7 +113,9 @@ public class MatchStringConstants implements MergeOperation {
         }
 
         for (Map.Entry<TypeEntry, TypeEntry> m : matches.entrySet()) {
-            set.match(m.getKey(), m.getValue());
+            if (!MergeUtil.isHighlyDifferent(m.getKey(), m.getValue())) {
+                set.match(m.getKey(), m.getValue());
+            }
         }
 
     }
@@ -236,7 +245,7 @@ public class MatchStringConstants implements MergeOperation {
         @Override
         public void visitMultiNewArray(MultiNewArray insn) {
             // TODO Auto-generated method stub
-            
+
         }
 
     }

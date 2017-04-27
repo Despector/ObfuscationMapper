@@ -28,12 +28,20 @@ import org.spongepowered.despector.ast.SourceSet;
 import org.spongepowered.despector.config.LibraryConfiguration;
 import org.spongepowered.despector.decompiler.Decompiler;
 import org.spongepowered.despector.decompiler.Decompilers;
-import org.spongepowered.despector.decompiler.JarWalker;
+import org.spongepowered.despector.decompiler.DirectoryWalker;
+import org.spongepowered.despector.util.serialization.AstLoader;
+import org.spongepowered.despector.util.serialization.MessagePacker;
+import org.spongepowered.despector.util.serialization.MessagePrinter;
+import org.spongepowered.despector.util.serialization.MessageUnpacker;
 import org.spongepowered.obfuscation.config.ObfConfigManager;
 import org.spongepowered.obfuscation.data.MappingsIO;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,6 +53,7 @@ import java.util.function.Consumer;
 public class ObfuscationMapper {
 
     private static final Map<String, Consumer<String>> flags = new HashMap<>();
+    private static boolean is_cached = false;
 
     static {
         flags.put("--config=", (arg) -> {
@@ -52,11 +61,14 @@ public class ObfuscationMapper {
             Path config_path = Paths.get(".").resolve(config);
             ObfConfigManager.load(config_path);
         });
+        flags.put("--cache", (arg) -> {
+            is_cached = true;
+        });
     }
 
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
-            System.out.println("Usage: java -jar ObfuscationMapper.jar old.jar old_mappings_dir new.jar");
+            System.out.println("Usage: java -jar ObfuscationMapper.jar old.jar old_mappings.srg new.jar output_mappings.srg");
             return;
         }
 
@@ -98,7 +110,7 @@ public class ObfuscationMapper {
         }
 
         Path root = Paths.get("");
-        Path old_mappings_root = root.resolve(old_mappings_dir).resolve("joined.srg");
+        Path old_mappings_root = root.resolve(old_mappings_dir);
 
         if (!Files.exists(old_mappings_root)) {
             System.err.println("Unknown mappings: " + old_mappings_root.toAbsolutePath().toString());
@@ -108,19 +120,54 @@ public class ObfuscationMapper {
         MappingsSet old_mappings = MappingsIO.load(old_mappings_root);
         MappingsSet new_mappings = new MappingsSet();
 
-        Path old_jar_path = root.resolve(old_jar);
         SourceSet old_sourceset = new SourceSet();
-        Path new_jar_path = root.resolve(new_jar);
         SourceSet new_sourceset = new SourceSet();
 
         Decompiler decompiler = Decompilers.JAVA;
-        JarWalker walker = new JarWalker(old_jar_path);
-        walker.walk(old_sourceset, decompiler);
-        System.out.println("Loaded and decompiled " + old_sourceset.getAllClasses().size() + " classes from the older version");
 
-        JarWalker new_walker = new JarWalker(new_jar_path);
-        new_walker.walk(new_sourceset, decompiler);
-        System.out.println("Loaded and decompiled " + new_sourceset.getAllClasses().size() + " classes from the newer version");
+        Path old_serialized = root.resolve(old_jar.replace('/', '_').replace('\\', '_') + ".ast");
+        if (is_cached && Files.exists(old_serialized)) {
+            long start = System.nanoTime();
+            AstLoader.loadSources(old_sourceset, new BufferedInputStream(new FileInputStream(old_serialized.toFile())));
+            long end = System.nanoTime();
+            System.out.println("Loaded cached ast with " + old_sourceset.getAllClasses().size() + " classes from the older version");
+            System.out.println("Loaded in " + ((end - start) / 1000000) + "ms");
+        } else {
+            long start = System.nanoTime();
+            Path old_jar_path = root.resolve(old_jar);
+            DirectoryWalker walker = new DirectoryWalker(old_jar_path);
+            walker.walk(old_sourceset, decompiler);
+            long end = System.nanoTime();
+            System.out.println("Loaded and decompiled " + old_sourceset.getAllClasses().size() + " classes from the older version");
+            System.out.println("Loaded in " + ((end - start) / 1000000) + "ms");
+            if (is_cached) {
+                try (MessagePacker packer = new MessagePacker(new FileOutputStream(old_serialized.toFile()))) {
+                    old_sourceset.writeTo(packer);
+                }
+            }
+        }
+        Path new_serialized = root.resolve(new_jar.replace('/', '_').replace('\\', '_') + ".ast");
+        if (is_cached && Files.exists(new_serialized)) {
+            long start = System.nanoTime();
+            AstLoader.loadSources(new_sourceset, new BufferedInputStream(new FileInputStream(new_serialized.toFile())));
+            long end = System.nanoTime();
+            System.out.println("Loaded cached ast with " + new_sourceset.getAllClasses().size() + " classes from the newer version");
+            System.out.println("Loaded in " + ((end - start) / 1000000) + "ms");
+        } else {
+            long start = System.nanoTime();
+            Path new_jar_path = root.resolve(new_jar);
+            DirectoryWalker walker = new DirectoryWalker(new_jar_path);
+            walker.walk(new_sourceset, decompiler);
+            long end = System.nanoTime();
+            System.out.println("Loaded and decompiled " + new_sourceset.getAllClasses().size() + " classes from the newer version");
+            System.out.println("Loaded in " + ((end - start) / 1000000) + "ms");
+
+            if (is_cached) {
+                try (MessagePacker packer = new MessagePacker(new FileOutputStream(new_serialized.toFile()))) {
+                    new_sourceset.writeTo(packer);
+                }
+            }
+        }
 
         MergeEngine engine = new MergeEngine(old_sourceset, old_mappings, new_sourceset, new_mappings);
         engine.merge();

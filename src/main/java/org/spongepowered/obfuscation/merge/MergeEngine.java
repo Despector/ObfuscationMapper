@@ -50,6 +50,8 @@ public class MergeEngine {
     private final MappingsSet old_mappings;
     private final MappingsSet new_mappings;
 
+    private int changes_last_cycle = 0;
+
     public MergeEngine(SourceSet oldsrc, MappingsSet oldmap, SourceSet newsrc, MappingsSet newmap) {
         this.old_src = oldsrc;
         this.new_src = newsrc;
@@ -71,6 +73,14 @@ public class MergeEngine {
 
     public MappingsSet getNewMappings() {
         return this.new_mappings;
+    }
+
+    public int getChangesLastCycle() {
+        return this.changes_last_cycle;
+    }
+
+    public void resetChanges() {
+        this.changes_last_cycle = 0;
     }
 
     public MatchEntry getMetch(String name) {

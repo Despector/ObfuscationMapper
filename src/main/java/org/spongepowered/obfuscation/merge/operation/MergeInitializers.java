@@ -22,19 +22,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.obfuscation.config;
+package org.spongepowered.obfuscation.merge.operation;
 
-import ninja.leaping.configurate.objectmapping.Setting;
+import org.spongepowered.obfuscation.merge.MergeEngine;
+import org.spongepowered.obfuscation.merge.MergeOperation;
 
-import java.util.ArrayList;
-import java.util.List;
+public class MergeInitializers implements MergeOperation {
 
-/**
- * The global configuration.
- */
-public class ObfConfig {
-
-    @Setting(value = "excluded-packages", comment = "Packages to ignore")
-    public List<String> excluded_packages = new ArrayList<>();
+    @Override
+    public void operate(MergeEngine set) {
+        
+    }
 
 }

@@ -35,7 +35,9 @@ import org.spongepowered.obfuscation.config.ObfConfigManager;
 import org.spongepowered.obfuscation.data.MappingsIO;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.MergeEngine;
+import org.spongepowered.obfuscation.merge.operation.MatchEnums;
 import org.spongepowered.obfuscation.merge.operation.MatchStringConstants;
+import org.spongepowered.obfuscation.merge.operation.MergeInitializers;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
@@ -128,6 +130,7 @@ public class ObfuscationMapper {
             if (!Files.exists(validation_mappings_path)) {
                 System.err.println("Valdiation mappings " + validation_mappings + " not found");
             } else {
+                System.out.println("Loading validation mappings");
                 validation = MappingsIO.load(validation_mappings_path);
             }
         }
@@ -184,6 +187,13 @@ public class ObfuscationMapper {
         MergeEngine engine = new MergeEngine(old_sourceset, old_mappings, new_sourceset, new_mappings);
 
         engine.addOperation(new MatchStringConstants());
+        engine.addOperation(new MatchEnums());
+        engine.addOperation(new MergeInitializers());
+        engine.addOperation(MergeEngine.jumpTo(2, (e) -> {
+            int ch = e.getChangesLastCycle();
+            e.resetChanges();
+            return ch > 0;
+        }));
 
         engine.merge();
 
@@ -192,9 +202,9 @@ public class ObfuscationMapper {
         System.out.println("Mapped " + new_mappings.fieldCount() + " fields");
         System.out.println("Mapped " + new_mappings.methodCount() + " methods");
 
-        int type_validation_errors = 0;
-
         if (validation != null) {
+            int type_validation_errors = 0;
+
             for (String mapped : new_mappings.getMappedTypes()) {
                 String new_mapped = new_mappings.mapTypeSafe(mapped);
                 String val_mapped = validation.mapType(mapped);
@@ -203,9 +213,9 @@ public class ObfuscationMapper {
                     type_validation_errors++;
                 }
             }
-        }
 
-        System.out.println("Type validation errors: " + type_validation_errors);
+            System.out.println("Type validation errors: " + type_validation_errors);
+        }
 
         Path mappings_out = root.resolve(output_mappings);
         MappingsIO.write(mappings_out.toAbsolutePath(), new_mappings);

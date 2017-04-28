@@ -22,37 +22,35 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.obfuscation.merge.operation;
+package org.spongepowered.obfuscation.merge.data;
 
 import org.spongepowered.despector.ast.type.MethodEntry;
-import org.spongepowered.obfuscation.merge.MergeEngine;
-import org.spongepowered.obfuscation.merge.MergeOperation;
-import org.spongepowered.obfuscation.merge.data.MatchEntry;
 
-import java.util.HashSet;
-import java.util.Set;
+public class MethodMatchEntry {
 
-public class MergeInitializers implements MergeOperation {
+    private final MethodEntry old_mth;
+    private final MethodEntry new_mth;
+    private boolean merged = false;
 
-    private Set<String> handled = new HashSet<>();
+    public MethodMatchEntry(MethodEntry old, MethodEntry n) {
+        this.old_mth = old;
+        this.new_mth = n;
+    }
 
-    @Override
-    public void operate(MergeEngine set) {
+    public MethodEntry getOldMethod() {
+        return this.old_mth;
+    }
 
-        for (MatchEntry match : set.getAllMatches()) {
-            if (this.handled.contains(match.getNewType().getName())) {
-                continue;
-            }
-            this.handled.add(match.getNewType().getName());
+    public MethodEntry getNewMethod() {
+        return this.new_mth;
+    }
 
-            MethodEntry old_clinit = match.getOldType().getMethod("<clinit>");
-            MethodEntry new_clinit = match.getNewType().getMethod("<clinit>");
-            if (old_clinit != null && new_clinit != null) {
-                set.match(old_clinit, new_clinit);
-            }
+    public boolean isMerged() {
+        return this.merged;
+    }
 
-        }
-
+    public void setMerged() {
+        this.merged = true;
     }
 
 }

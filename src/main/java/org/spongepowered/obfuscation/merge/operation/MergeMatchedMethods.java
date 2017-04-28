@@ -24,33 +24,20 @@
  */
 package org.spongepowered.obfuscation.merge.operation;
 
-import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
-import org.spongepowered.obfuscation.merge.data.MatchEntry;
+import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 
-import java.util.HashSet;
-import java.util.Set;
-
-public class MergeInitializers implements MergeOperation {
-
-    private Set<String> handled = new HashSet<>();
+public class MergeMatchedMethods implements MergeOperation {
 
     @Override
     public void operate(MergeEngine set) {
 
-        for (MatchEntry match : set.getAllMatches()) {
-            if (this.handled.contains(match.getNewType().getName())) {
+        for (MethodMatchEntry match : set.getAllMethodMatches()) {
+            if (match.isMerged()) {
                 continue;
             }
-            this.handled.add(match.getNewType().getName());
-
-            MethodEntry old_clinit = match.getOldType().getMethod("<clinit>");
-            MethodEntry new_clinit = match.getNewType().getMethod("<clinit>");
-            if (old_clinit != null && new_clinit != null) {
-                set.match(old_clinit, new_clinit);
-            }
-
+            MergeUtil.merge(set, match.getOldMethod(), match.getNewMethod());
         }
 
     }

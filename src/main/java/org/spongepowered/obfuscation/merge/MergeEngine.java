@@ -25,11 +25,16 @@
 package org.spongepowered.obfuscation.merge;
 
 import org.spongepowered.despector.ast.SourceSet;
+import org.spongepowered.despector.ast.type.FieldEntry;
+import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
 import org.spongepowered.obfuscation.data.MappingsSet;
+import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MatchEntry;
+import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +49,8 @@ public class MergeEngine {
     private List<MergeOperation> operations = new ArrayList<>();
 
     private final Map<String, MatchEntry> matches = new HashMap<>();
+    private final Map<String, MethodMatchEntry> method_matches = new HashMap<>();
+    private final Map<String, FieldMatchEntry> field_matches = new HashMap<>();
 
     private final SourceSet old_src;
     private final SourceSet new_src;
@@ -87,18 +94,60 @@ public class MergeEngine {
         return this.matches.get(name);
     }
 
-    public MatchEntry match(TypeEntry old, TypeEntry n) {
+    public Collection<MatchEntry> getAllMatches() {
+        return this.matches.values();
+    }
+
+    public Collection<MethodMatchEntry> getAllMethodMatches() {
+        return this.method_matches.values();
+    }
+
+    public Collection<FieldMatchEntry> getAllFieldMatches() {
+        return this.field_matches.values();
+    }
+
+    public boolean match(TypeEntry old, TypeEntry n) {
         MatchEntry entry = this.matches.get(old.getName());
         if (entry != null) {
             if (entry.getNewType() != n) {
                 throw new IllegalStateException("Type mismatch error: Tried " + old.getName() + " -> " + n.getName() + " but already matched to "
                         + entry.getNewType().getName());
             }
-            return entry;
+            return false;
         }
         entry = new MatchEntry(old, n);
         this.matches.put(old.getName(), entry);
-        return entry;
+        return true;
+    }
+
+    public boolean match(MethodEntry old, MethodEntry n) {
+        MethodMatchEntry entry = this.method_matches.get(old.getName());
+        if (entry != null) {
+            if (entry.getNewMethod() != n) {
+                throw new IllegalStateException("Method mismatch error: Tried " + old.getName() + old.getDescription() + " -> " + n.getName()
+                        + n.getDescription() + " but already matched to "
+                        + entry.getNewMethod().getName() + entry.getNewMethod().getDescription());
+            }
+            return false;
+        }
+        entry = new MethodMatchEntry(old, n);
+        this.method_matches.put(old.getName(), entry);
+        return true;
+    }
+
+    public boolean match(FieldEntry old, FieldEntry n) {
+        FieldMatchEntry entry = this.field_matches.get(old.getName());
+        if (entry != null) {
+            if (entry.getNewField() != n) {
+                throw new IllegalStateException("Field mismatch error: Tried " + old.getName() + old.getTypeName() + " -> " + n.getName()
+                        + n.getTypeName() + " but already matched to "
+                        + entry.getNewField().getName() + entry.getNewField().getTypeName());
+            }
+            return false;
+        }
+        entry = new FieldMatchEntry(old, n);
+        this.field_matches.put(old.getName(), entry);
+        return true;
     }
 
     public void addOperation(int index, MergeOperation op) {

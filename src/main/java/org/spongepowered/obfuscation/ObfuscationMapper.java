@@ -38,6 +38,7 @@ import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.operation.MatchEnums;
 import org.spongepowered.obfuscation.merge.operation.MatchStringConstants;
 import org.spongepowered.obfuscation.merge.operation.MergeInitializers;
+import org.spongepowered.obfuscation.merge.operation.MergeMatchedMethods;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
@@ -189,6 +190,7 @@ public class ObfuscationMapper {
         engine.addOperation(new MatchStringConstants());
         engine.addOperation(new MatchEnums());
         engine.addOperation(new MergeInitializers());
+        engine.addOperation(new MergeMatchedMethods());
         engine.addOperation(MergeEngine.jumpTo(2, (e) -> {
             int ch = e.getChangesLastCycle();
             e.resetChanges();

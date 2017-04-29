@@ -48,11 +48,9 @@ public class MergeInitializers implements MergeOperation {
             MethodEntry old_clinit = match.getOldType().getMethod("<clinit>");
             MethodEntry new_clinit = match.getNewType().getMethod("<clinit>");
             if (old_clinit != null && new_clinit != null) {
-                set.match(old_clinit, new_clinit);
+                set.getMethodMatch(old_clinit).setNewMethod(new_clinit);
             }
-
         }
-
     }
 
 }

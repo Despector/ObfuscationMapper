@@ -26,23 +26,27 @@ package org.spongepowered.obfuscation.merge.data;
 
 import org.spongepowered.despector.ast.type.FieldEntry;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class FieldMatchEntry {
 
-    private final FieldEntry old_mth;
-    private final FieldEntry new_mth;
+    private final FieldEntry old_field;
+    private FieldEntry new_field;
     private boolean merged = false;
 
-    public FieldMatchEntry(FieldEntry old, FieldEntry n) {
-        this.old_mth = old;
-        this.new_mth = n;
+    private Map<FieldEntry, Integer> votes = new HashMap<>();
+
+    public FieldMatchEntry(FieldEntry old) {
+        this.old_field = old;
     }
 
     public FieldEntry getOldField() {
-        return this.old_mth;
+        return this.old_field;
     }
 
     public FieldEntry getNewField() {
-        return this.new_mth;
+        return this.new_field;
     }
 
     public boolean isMerged() {
@@ -51,6 +55,27 @@ public class FieldMatchEntry {
 
     public void setMerged() {
         this.merged = true;
+    }
+
+    public void setNewField(FieldEntry type) {
+        this.new_field = type;
+    }
+
+    public boolean vote(FieldEntry n) {
+        if (this.new_field != null) {
+            return false;
+        }
+        Integer v = this.votes.get(n);
+        if (v != null) {
+            this.votes.put(n, v + 1);
+        } else {
+            this.votes.put(n, 1);
+        }
+        return true;
+    }
+
+    public Map<FieldEntry, Integer> getVotes() {
+        return this.votes;
     }
 
 }

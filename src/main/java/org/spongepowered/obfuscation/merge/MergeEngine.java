@@ -48,14 +48,15 @@ public class MergeEngine {
 
     private List<MergeOperation> operations = new ArrayList<>();
 
-    private final Map<String, MatchEntry> matches = new HashMap<>();
-    private final Map<String, MethodMatchEntry> method_matches = new HashMap<>();
-    private final Map<String, FieldMatchEntry> field_matches = new HashMap<>();
+    private final Map<TypeEntry, MatchEntry> matches = new HashMap<>();
+    private final Map<MethodEntry, MethodMatchEntry> method_matches = new HashMap<>();
+    private final Map<FieldEntry, FieldMatchEntry> field_matches = new HashMap<>();
 
     private final SourceSet old_src;
     private final SourceSet new_src;
     private final MappingsSet old_mappings;
     private final MappingsSet new_mappings;
+    private MappingsSet validation_mappings;
 
     private int changes_last_cycle = 0;
 
@@ -82,6 +83,14 @@ public class MergeEngine {
         return this.new_mappings;
     }
 
+    public MappingsSet getValidationMappings() {
+        return this.validation_mappings;
+    }
+
+    public void setValidationMappings(MappingsSet mappings) {
+        this.validation_mappings = mappings;
+    }
+
     public int getChangesLastCycle() {
         return this.changes_last_cycle;
     }
@@ -90,64 +99,58 @@ public class MergeEngine {
         this.changes_last_cycle = 0;
     }
 
-    public MatchEntry getMetch(String name) {
-        return this.matches.get(name);
+    public MatchEntry getMatch(TypeEntry t) {
+        MatchEntry m = this.matches.get(t);
+        if (m == null) {
+            m = new MatchEntry(t);
+            this.matches.put(t, m);
+        }
+        return m;
+    }
+
+    public void vote(TypeEntry old, TypeEntry n) {
+        MatchEntry entry = getMatch(old);
+        entry.vote(n);
     }
 
     public Collection<MatchEntry> getAllMatches() {
         return this.matches.values();
     }
 
+    public MethodMatchEntry getMethodMatch(MethodEntry t) {
+        MethodMatchEntry m = this.method_matches.get(t);
+        if (m == null) {
+            m = new MethodMatchEntry(t);
+            this.method_matches.put(t, m);
+        }
+        return m;
+    }
+
+    public void vote(MethodEntry old, MethodEntry n) {
+        MethodMatchEntry entry = getMethodMatch(old);
+        entry.vote(n);
+    }
+
     public Collection<MethodMatchEntry> getAllMethodMatches() {
         return this.method_matches.values();
     }
 
+    public FieldMatchEntry getFieldMatch(FieldEntry t) {
+        FieldMatchEntry m = this.field_matches.get(t);
+        if (m == null) {
+            m = new FieldMatchEntry(t);
+            this.field_matches.put(t, m);
+        }
+        return m;
+    }
+
+    public void vote(FieldEntry old, FieldEntry n) {
+        FieldMatchEntry entry = getFieldMatch(old);
+        entry.vote(n);
+    }
+
     public Collection<FieldMatchEntry> getAllFieldMatches() {
         return this.field_matches.values();
-    }
-
-    public boolean match(TypeEntry old, TypeEntry n) {
-        MatchEntry entry = this.matches.get(old.getName());
-        if (entry != null) {
-            if (entry.getNewType() != n) {
-                throw new IllegalStateException("Type mismatch error: Tried " + old.getName() + " -> " + n.getName() + " but already matched to "
-                        + entry.getNewType().getName());
-            }
-            return false;
-        }
-        entry = new MatchEntry(old, n);
-        this.matches.put(old.getName(), entry);
-        return true;
-    }
-
-    public boolean match(MethodEntry old, MethodEntry n) {
-        MethodMatchEntry entry = this.method_matches.get(old.getName());
-        if (entry != null) {
-            if (entry.getNewMethod() != n) {
-                throw new IllegalStateException("Method mismatch error: Tried " + old.getName() + old.getDescription() + " -> " + n.getName()
-                        + n.getDescription() + " but already matched to "
-                        + entry.getNewMethod().getName() + entry.getNewMethod().getDescription());
-            }
-            return false;
-        }
-        entry = new MethodMatchEntry(old, n);
-        this.method_matches.put(old.getName(), entry);
-        return true;
-    }
-
-    public boolean match(FieldEntry old, FieldEntry n) {
-        FieldMatchEntry entry = this.field_matches.get(old.getName());
-        if (entry != null) {
-            if (entry.getNewField() != n) {
-                throw new IllegalStateException("Field mismatch error: Tried " + old.getName() + old.getTypeName() + " -> " + n.getName()
-                        + n.getTypeName() + " but already matched to "
-                        + entry.getNewField().getName() + entry.getNewField().getTypeName());
-            }
-            return false;
-        }
-        entry = new FieldMatchEntry(old, n);
-        this.field_matches.put(old.getName(), entry);
-        return true;
     }
 
     public void addOperation(int index, MergeOperation op) {

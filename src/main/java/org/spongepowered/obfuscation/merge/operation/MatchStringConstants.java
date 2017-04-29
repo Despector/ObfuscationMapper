@@ -94,30 +94,12 @@ public class MatchStringConstants implements MergeOperation {
         }
         Map<String, TypeEntry> new_unique = walker.getUniqueStringConstants();
         walker = null;
-        Map<TypeEntry, TypeEntry> matches = new HashMap<>();
-        Set<TypeEntry> no_match = new HashSet<>();
         for (Map.Entry<String, TypeEntry> e : old_unique.entrySet()) {
-            if (no_match.contains(e.getValue())) {
-                continue;
-            }
             TypeEntry n = new_unique.get(e.getKey());
             if (n != null) {
-                TypeEntry prev = matches.get(e.getValue());
-                if (prev == null) {
-                    matches.put(e.getValue(), n);
-                } else if (prev != n) {
-                    no_match.add(e.getValue());
-                    matches.remove(e.getValue());
-                }
+                set.getMatch(e.getValue()).vote(n);
             }
         }
-
-        for (Map.Entry<TypeEntry, TypeEntry> m : matches.entrySet()) {
-            if (!MergeUtil.isHighlyDifferent(m.getKey(), m.getValue())) {
-                set.match(m.getKey(), m.getValue());
-            }
-        }
-
     }
 
     private static class Walker implements InstructionVisitor {

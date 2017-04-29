@@ -26,15 +26,19 @@ package org.spongepowered.obfuscation.merge.data;
 
 import org.spongepowered.despector.ast.type.MethodEntry;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class MethodMatchEntry {
 
     private final MethodEntry old_mth;
-    private final MethodEntry new_mth;
+    private MethodEntry new_mth;
     private boolean merged = false;
 
-    public MethodMatchEntry(MethodEntry old, MethodEntry n) {
+    private Map<MethodEntry, Integer> votes = new HashMap<>();
+
+    public MethodMatchEntry(MethodEntry old) {
         this.old_mth = old;
-        this.new_mth = n;
     }
 
     public MethodEntry getOldMethod() {
@@ -51,6 +55,27 @@ public class MethodMatchEntry {
 
     public void setMerged() {
         this.merged = true;
+    }
+
+    public void setNewMethod(MethodEntry type) {
+        this.new_mth = type;
+    }
+
+    public boolean vote(MethodEntry n) {
+        if (this.new_mth != null) {
+            return false;
+        }
+        Integer v = this.votes.get(n);
+        if (v != null) {
+            this.votes.put(n, v + 1);
+        } else {
+            this.votes.put(n, 1);
+        }
+        return true;
+    }
+
+    public Map<MethodEntry, Integer> getVotes() {
+        return this.votes;
     }
 
 }

@@ -24,38 +24,13 @@
  */
 package org.spongepowered.obfuscation.merge.operation;
 
-import org.spongepowered.despector.ast.type.EnumEntry;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
 
-public class MatchEnums implements MergeOperation {
+public class VoteCollector implements MergeOperation {
 
     @Override
     public void operate(MergeEngine set) {
-        for (EnumEntry n : set.getNewSourceSet().getAllEnums()) {
-            if (n.isAnonType() || n.getEnumConstants().isEmpty()) {
-                continue;
-            }
-            boolean is_inner = n.getName().contains("$");
-
-            search: for (EnumEntry m : set.getOldSourceSet().getAllEnums()) {
-                if (m.isAnonType() || m.getEnumConstants().isEmpty()) {
-                    continue;
-                }
-                if (n.getEnumConstants().size() < m.getEnumConstants().size()) {
-                    continue;
-                }
-                if (m.getName().contains("$") ^ is_inner) {
-                    continue;
-                }
-                for (String cst : m.getEnumConstants()) {
-                    if (!n.getEnumConstants().contains(cst)) {
-                        continue search;
-                    }
-                }
-                set.getMatch(m).vote(n);
-            }
-        }
 
     }
 

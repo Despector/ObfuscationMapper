@@ -26,14 +26,18 @@ package org.spongepowered.obfuscation.merge.data;
 
 import org.spongepowered.despector.ast.type.TypeEntry;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class MatchEntry {
 
     private final TypeEntry old_type;
-    private final TypeEntry new_type;
+    private TypeEntry new_type;
 
-    public MatchEntry(TypeEntry old, TypeEntry n) {
+    private Map<TypeEntry, Integer> votes = new HashMap<>();
+
+    public MatchEntry(TypeEntry old) {
         this.old_type = old;
-        this.new_type = n;
     }
 
     public TypeEntry getOldType() {
@@ -42,6 +46,27 @@ public class MatchEntry {
 
     public TypeEntry getNewType() {
         return this.new_type;
+    }
+
+    public void setNewType(TypeEntry type) {
+        this.new_type = type;
+    }
+
+    public boolean vote(TypeEntry n) {
+        if (this.new_type != null) {
+            return false;
+        }
+        Integer v = this.votes.get(n);
+        if (v != null) {
+            this.votes.put(n, v + 1);
+        } else {
+            this.votes.put(n, 1);
+        }
+        return true;
+    }
+
+    public Map<TypeEntry, Integer> getVotes() {
+        return this.votes;
     }
 
 }

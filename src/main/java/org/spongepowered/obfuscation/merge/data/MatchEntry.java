@@ -34,6 +34,7 @@ public class MatchEntry {
 
     private final TypeEntry old_type;
     private TypeEntry new_type;
+    private boolean merged = false;
 
     private int highest = 0;
     private TypeEntry highest_type = null;
@@ -55,6 +56,14 @@ public class MatchEntry {
     public void setNewType(TypeEntry type) {
         this.new_type = type;
         this.votes = null;
+    }
+
+    public boolean isMerged() {
+        return this.merged;
+    }
+
+    public void setAsMerged() {
+        this.merged = true;
     }
 
     public boolean vote(TypeEntry n) {

@@ -29,7 +29,6 @@ import org.spongepowered.obfuscation.merge.MergeOperation;
 import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MatchEntry;
 import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
-import org.spongepowered.despector.ast.type.EnumEntry;
 
 import java.util.ArrayList;
 import java.util.Collections;

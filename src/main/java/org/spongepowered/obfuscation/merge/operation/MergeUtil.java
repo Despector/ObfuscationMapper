@@ -29,7 +29,12 @@ import org.spongepowered.despector.ast.generic.GenericClassTypeSignature;
 import org.spongepowered.despector.ast.generic.TypeArgument;
 import org.spongepowered.despector.ast.generic.TypeSignature;
 import org.spongepowered.despector.ast.insn.Instruction;
+import org.spongepowered.despector.ast.insn.condition.AndCondition;
+import org.spongepowered.despector.ast.insn.condition.BooleanCondition;
+import org.spongepowered.despector.ast.insn.condition.CompareCondition;
 import org.spongepowered.despector.ast.insn.condition.Condition;
+import org.spongepowered.despector.ast.insn.condition.InverseCondition;
+import org.spongepowered.despector.ast.insn.condition.OrCondition;
 import org.spongepowered.despector.ast.stmt.Statement;
 import org.spongepowered.despector.ast.stmt.StatementBlock;
 import org.spongepowered.despector.ast.stmt.assign.ArrayAssignment;
@@ -758,6 +763,43 @@ public class MergeUtil {
         });
         create(InvokeStatement.class, (set, a, b) -> {
             return merge(set, a.getInstruction(), b.getInstruction());
+        });
+        create(BooleanCondition.class, (set, a, b) -> {
+            return merge(set, a.getConditionValue(), b.getConditionValue());
+        });
+        create(AndCondition.class, (set, a, b) -> {
+            if (a.getOperands().size() != b.getOperands().size()) {
+                return false;
+            }
+            for (int i = 0; i < a.getOperands().size(); i++) {
+                if (!merge(set, a.getOperands().get(i), b.getOperands().get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        });
+        create(OrCondition.class, (set, a, b) -> {
+            if (a.getOperands().size() != b.getOperands().size()) {
+                return false;
+            }
+            for (int i = 0; i < a.getOperands().size(); i++) {
+                if (!merge(set, a.getOperands().get(i), b.getOperands().get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        });
+        create(InverseCondition.class, (set, a, b) -> {
+            return merge(set, a.getConditionValue(), b.getConditionValue());
+        });
+        create(CompareCondition.class, (set, a, b) -> {
+            if (a.getOperator() != b.getOperator()) {
+                return false;
+            }
+            if (!merge(set, a.getLeft(), b.getLeft())) {
+                return false;
+            }
+            return merge(set, a.getRight(), b.getRight());
         });
     }
 

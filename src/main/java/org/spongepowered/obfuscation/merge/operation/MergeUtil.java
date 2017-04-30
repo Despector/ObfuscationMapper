@@ -56,6 +56,7 @@ import org.spongepowered.despector.ast.stmt.misc.Comment;
 import org.spongepowered.despector.ast.stmt.misc.Increment;
 import org.spongepowered.despector.ast.stmt.misc.Return;
 import org.spongepowered.despector.ast.stmt.misc.Throw;
+import org.spongepowered.despector.ast.type.ClassEntry;
 import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
@@ -187,6 +188,48 @@ public class MergeUtil {
         return merger.merge(set, a, b);
     }
 
+    public static MethodEntry findMethod(TypeEntry type, String name, String desc) {
+        MethodEntry mth = type.getMethod(name, desc);
+        if (mth != null) {
+            return mth;
+        }
+        if (type instanceof ClassEntry) {
+            ClassEntry cls = (ClassEntry) type;
+            TypeEntry sup = type.getSource().get(cls.getSuperclassName());
+            if (sup != null) {
+                return findMethod(sup, name, desc);
+            }
+        }
+        return null;
+    }
+
+    public static MethodEntry findStaticMethod(TypeEntry type, String name, String desc) {
+        MethodEntry mth = type.getStaticMethod(name, desc);
+        if (mth != null) {
+            return mth;
+        }
+        if (type instanceof ClassEntry) {
+            ClassEntry cls = (ClassEntry) type;
+            TypeEntry sup = type.getSource().get(cls.getSuperclassName());
+            if (sup != null) {
+                mth = findStaticMethod(sup, name, desc);
+                if (mth != null) {
+                    return mth;
+                }
+            }
+        }
+        for (String inter : type.getInterfaces()) {
+            TypeEntry sup = type.getSource().get(inter);
+            if (sup != null) {
+                mth = findStaticMethod(sup, name, desc);
+                if (mth != null) {
+                    return mth;
+                }
+            }
+        }
+        return null;
+    }
+
     private static final Map<Class<?>, StatementMerger<?>> statement_mergers = new HashMap<>();
     private static final Map<Class<?>, InstructionMerger<?>> instruction_mergers = new HashMap<>();
     private static final Map<Class<?>, ConditionMerger<?>> condition_mergers = new HashMap<>();
@@ -247,7 +290,7 @@ public class MergeUtil {
                 }
                 FieldEntry old_field = old_owner.getField(a.getFieldName());
                 FieldEntry new_field = new_owner.getField(b.getFieldName());
-                if (!set.getFieldMatch(old_field).vote(new_field)) {
+                if (!set.vote(old_field, new_field)) {
                     return false;
                 }
             }
@@ -473,7 +516,7 @@ public class MergeUtil {
                 }
                 for (int k = 0; k < ac.getExceptions().size(); k++) {
                     TypeEntry ace = set.getOldSourceSet().get(ac.getExceptions().get(k));
-                    TypeEntry bce = set.getOldSourceSet().get(bc.getExceptions().get(k));
+                    TypeEntry bce = set.getNewSourceSet().get(bc.getExceptions().get(k));
                     if (ace == null || bce == null) {
                         if (!ac.getExceptions().get(k).equals(bc.getExceptions().get(k))) {
                             return false;
@@ -528,7 +571,7 @@ public class MergeUtil {
                 return false;
             }
             TypeEntry ao = set.getOldSourceSet().get(a.getLambdaOwner());
-            TypeEntry bo = set.getOldSourceSet().get(b.getLambdaOwner());
+            TypeEntry bo = set.getNewSourceSet().get(b.getLambdaOwner());
             if (ao == null || bo == null) {
                 if (!a.getLambdaOwner().equals(b.getLambdaOwner())) {
                     return false;
@@ -540,13 +583,24 @@ public class MergeUtil {
         });
         create(InstanceMethodInvoke.class, (set, a, b) -> {
             TypeEntry ao = set.getOldSourceSet().get(a.getOwnerType());
-            TypeEntry bo = set.getOldSourceSet().get(b.getOwnerType());
+            TypeEntry bo = set.getNewSourceSet().get(b.getOwnerType());
             if (ao == null || bo == null) {
                 if (!a.getOwnerType().equals(b.getOwnerType())) {
                     return false;
                 }
-            } else if (!set.vote(ao, bo)) {
-                return false;
+            } else {
+                if (!set.vote(ao, bo)) {
+                    return false;
+                }
+                MethodEntry old_method = findMethod(ao, a.getMethodName(), a.getMethodDescription());
+                MethodEntry new_method = findMethod(bo, b.getMethodName(), b.getMethodDescription());
+                if (old_method == null || new_method == null) {
+                    if (a.getMethodName() != b.getMethodName()) {
+                        return false;
+                    }
+                } else if (!set.vote(old_method, new_method)) {
+                    return false;
+                }
             }
             if (a.getParams().length != b.getParams().length) {
                 return false;
@@ -555,7 +609,7 @@ public class MergeUtil {
             List<String> bp = TypeHelper.splitSig(b.getMethodDescription());
             for (int i = 0; i < ap.size(); i++) {
                 TypeEntry apo = set.getOldSourceSet().get(ap.get(i));
-                TypeEntry bpo = set.getOldSourceSet().get(bp.get(i));
+                TypeEntry bpo = set.getNewSourceSet().get(bp.get(i));
                 if (apo == null || bpo == null) {
                     if (!ap.get(i).equals(bp.get(i))) {
                         return false;
@@ -598,7 +652,7 @@ public class MergeUtil {
             List<String> bp = TypeHelper.splitSig(b.getCtorDescription());
             for (int i = 0; i < ap.size(); i++) {
                 TypeEntry apo = set.getOldSourceSet().get(ap.get(i));
-                TypeEntry bpo = set.getOldSourceSet().get(bp.get(i));
+                TypeEntry bpo = set.getNewSourceSet().get(bp.get(i));
                 if (apo == null || bpo == null) {
                     if (!ap.get(i).equals(bp.get(i))) {
                         return false;
@@ -611,7 +665,7 @@ public class MergeUtil {
                 String ar = TypeHelper.getRet(a.getCtorDescription());
                 String br = TypeHelper.getRet(b.getCtorDescription());
                 TypeEntry apo = set.getOldSourceSet().get(ar);
-                TypeEntry bpo = set.getOldSourceSet().get(br);
+                TypeEntry bpo = set.getNewSourceSet().get(br);
                 if (apo == null || bpo == null) {
                     if (!ar.equals(br)) {
                         return false;
@@ -634,8 +688,19 @@ public class MergeUtil {
                 if (!a.getOwnerType().equals(b.getOwnerType())) {
                     return false;
                 }
-            } else if (!set.vote(ao, bo)) {
-                return false;
+            } else {
+                if (!set.vote(ao, bo)) {
+                    return false;
+                }
+                MethodEntry old_method = findStaticMethod(ao, a.getMethodName(), a.getMethodDescription());
+                MethodEntry new_method = findStaticMethod(bo, b.getMethodName(), b.getMethodDescription());
+                if (old_method == null || new_method == null) {
+                    if (a.getMethodName() != b.getMethodName()) {
+                        return false;
+                    }
+                } else if (!set.vote(old_method, new_method)) {
+                    return false;
+                }
             }
             if (a.getParams().length != b.getParams().length) {
                 return false;
@@ -644,7 +709,7 @@ public class MergeUtil {
             List<String> bp = TypeHelper.splitSig(b.getMethodDescription());
             for (int i = 0; i < ap.size(); i++) {
                 TypeEntry apo = set.getOldSourceSet().get(ap.get(i));
-                TypeEntry bpo = set.getOldSourceSet().get(bp.get(i));
+                TypeEntry bpo = set.getNewSourceSet().get(bp.get(i));
                 if (apo == null || bpo == null) {
                     if (!ap.get(i).equals(bp.get(i))) {
                         return false;
@@ -657,7 +722,7 @@ public class MergeUtil {
                 String ar = TypeHelper.getRet(a.getMethodDescription());
                 String br = TypeHelper.getRet(b.getMethodDescription());
                 TypeEntry apo = set.getOldSourceSet().get(ar);
-                TypeEntry bpo = set.getOldSourceSet().get(br);
+                TypeEntry bpo = set.getNewSourceSet().get(br);
                 if (apo == null || bpo == null) {
                     if (!ar.equals(br)) {
                         return false;

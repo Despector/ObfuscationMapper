@@ -34,6 +34,7 @@ import org.spongepowered.despector.util.serialization.MessagePacker;
 import org.spongepowered.obfuscation.config.ObfConfigManager;
 import org.spongepowered.obfuscation.data.MappingsIO;
 import org.spongepowered.obfuscation.data.MappingsSet;
+import org.spongepowered.obfuscation.data.MappingsSet.MethodMapping;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.operation.MatchEnums;
 import org.spongepowered.obfuscation.merge.operation.MatchStringConstants;
@@ -212,6 +213,8 @@ public class ObfuscationMapper {
 
         if (validation != null) {
             int type_validation_errors = 0;
+            int method_validation_errors = 0;
+            int field_validation_errors = 0;
 
             for (String mapped : new_mappings.getMappedTypes()) {
                 String new_mapped = new_mappings.mapTypeSafe(mapped);
@@ -222,7 +225,29 @@ public class ObfuscationMapper {
                 }
             }
 
+            for (String mapped : new_mappings.getMappedMethods()) {
+                for (MethodMapping map : new_mappings.getMethods(mapped)) {
+                    String new_mapped = new_mappings.mapMethodSafe(map.getObfOwner(), map.getObf(), map.getObfSignature());
+                    String val_mapped = validation.mapMethodSafe(map.getObfOwner(), map.getObf(), map.getObfSignature());
+                    if (!new_mapped.equals(val_mapped)) {
+                        System.out.println("Mapped method " + mapped + " to " + new_mapped + " but should have been " + val_mapped);
+                        method_validation_errors++;
+                    }
+                }
+            }
+
+            for (String mapped : new_mappings.getMappedFields()) {
+                String new_mapped = new_mappings.mapField(mapped);
+                String val_mapped = validation.mapField(mapped);
+                if (!new_mapped.equals(val_mapped)) {
+                    System.out.println("Mapped field " + mapped + " to " + new_mapped + " but should have been " + val_mapped);
+                    field_validation_errors++;
+                }
+            }
+
             System.out.println("Type validation errors: " + type_validation_errors);
+            System.out.println("Method validation errors: " + method_validation_errors);
+            System.out.println("Field validation errors: " + field_validation_errors);
         }
 
         Path mappings_out = root.resolve(output_mappings);

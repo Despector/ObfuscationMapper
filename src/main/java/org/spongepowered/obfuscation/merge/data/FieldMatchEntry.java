@@ -24,6 +24,8 @@
  */
 package org.spongepowered.obfuscation.merge.data;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.spongepowered.despector.ast.type.FieldEntry;
 
 import java.util.HashMap;
@@ -41,7 +43,7 @@ public class FieldMatchEntry {
     private Map<FieldEntry, Integer> votes = new HashMap<>();
 
     public FieldMatchEntry(FieldEntry old) {
-        this.old_field = old;
+        this.old_field = checkNotNull(old, "old");
     }
 
     public FieldEntry getOldField() {
@@ -108,6 +110,22 @@ public class FieldMatchEntry {
 
     public int getVoteDifference() {
         return this.highest - this.second;
+    }
+
+    public void removeVote(FieldEntry n) {
+        this.votes.remove(n);
+        this.second = 0;
+        this.highest = 0;
+        this.highest_type = null;
+        for (Map.Entry<FieldEntry, Integer> e : this.votes.entrySet()) {
+            if (e.getValue() > this.highest) {
+                this.second = this.highest;
+                this.highest = e.getValue();
+                this.highest_type = e.getKey();
+            } else if (e.getValue() > this.second) {
+                this.second = e.getValue();
+            }
+        }
     }
 
 }

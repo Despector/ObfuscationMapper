@@ -24,6 +24,7 @@
  */
 package org.spongepowered.obfuscation.merge.data;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import org.spongepowered.despector.ast.type.MethodEntry;
 
 import java.util.HashMap;
@@ -41,7 +42,7 @@ public class MethodMatchEntry {
     private Map<MethodEntry, Integer> votes = new HashMap<>();
 
     public MethodMatchEntry(MethodEntry old) {
-        this.old_mth = old;
+        this.old_mth = checkNotNull(old, "old");
     }
 
     public MethodEntry getOldMethod() {
@@ -108,6 +109,22 @@ public class MethodMatchEntry {
 
     public int getVoteDifference() {
         return this.highest - this.second;
+    }
+
+    public void removeVote(MethodEntry n) {
+        this.votes.remove(n);
+        this.second = 0;
+        this.highest = 0;
+        this.highest_type = null;
+        for (Map.Entry<MethodEntry, Integer> e : this.votes.entrySet()) {
+            if (e.getValue() > this.highest) {
+                this.second = this.highest;
+                this.highest = e.getValue();
+                this.highest_type = e.getKey();
+            } else if (e.getValue() > this.second) {
+                this.second = e.getValue();
+            }
+        }
     }
 
 }

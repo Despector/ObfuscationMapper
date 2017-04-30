@@ -28,7 +28,6 @@ import org.spongepowered.despector.ast.SourceSet;
 import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
-import org.spongepowered.despector.util.TypeHelper;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MatchEntry;
@@ -37,8 +36,10 @@ import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public class MergeEngine {
@@ -50,8 +51,11 @@ public class MergeEngine {
     private List<MergeOperation> operations = new ArrayList<>();
 
     private final Map<TypeEntry, MatchEntry> matches = new HashMap<>();
+    private final Set<TypeEntry> matched_types = new HashSet<>();
     private final Map<MethodEntry, MethodMatchEntry> method_matches = new HashMap<>();
+    private final Set<MethodEntry> matched_methods = new HashSet<>();
     private final Map<FieldEntry, FieldMatchEntry> field_matches = new HashMap<>();
+    private final Set<FieldEntry> matched_fields = new HashSet<>();
 
     private final Map<TypeEntry, MatchEntry> pending_matches = new HashMap<>();
     private final Map<MethodEntry, MethodMatchEntry> pending_method_matches = new HashMap<>();
@@ -126,12 +130,20 @@ public class MergeEngine {
     }
 
     public boolean vote(TypeEntry old, TypeEntry n) {
-        return getPendingMatch(old).vote(n);
+        MatchEntry m = getPendingMatch(old);
+        if (this.matched_types.contains(n)) {
+            return m.getNewType() == n;
+        }
+        return m.vote(n);
     }
 
     public void setAsMatched(MatchEntry entry) {
         this.pending_matches.remove(entry.getOldType());
         this.matches.put(entry.getOldType(), entry);
+        this.matched_types.add(entry.getNewType());
+        for (MatchEntry match : this.pending_matches.values()) {
+            match.removeVote(entry.getNewType());
+        }
     }
 
     public Collection<MatchEntry> getAllMatches() {
@@ -160,12 +172,20 @@ public class MergeEngine {
     }
 
     public boolean vote(MethodEntry old, MethodEntry n) {
-        return getPendingMethodMatch(old).vote(n);
+        MethodMatchEntry m = getPendingMethodMatch(old);
+        if (this.matched_methods.contains(n)) {
+            return m.getNewMethod() == n;
+        }
+        return m.vote(n);
     }
 
     public void setAsMatched(MethodMatchEntry entry) {
         this.pending_method_matches.remove(entry.getOldMethod());
         this.method_matches.put(entry.getOldMethod(), entry);
+        this.matched_methods.add(entry.getNewMethod());
+        for (MethodMatchEntry match : this.pending_method_matches.values()) {
+            match.removeVote(entry.getNewMethod());
+        }
     }
 
     public Collection<MethodMatchEntry> getAllMethodMatches() {
@@ -194,12 +214,20 @@ public class MergeEngine {
     }
 
     public boolean vote(FieldEntry old, FieldEntry n) {
-        return getPendingFieldMatch(old).vote(n);
+        FieldMatchEntry m = getPendingFieldMatch(old);
+        if (this.matched_fields.contains(n)) {
+            return m.getNewField() == n;
+        }
+        return m.vote(n);
     }
 
     public void setAsMatched(FieldMatchEntry entry) {
         this.pending_field_matches.remove(entry.getOldField());
         this.field_matches.put(entry.getOldField(), entry);
+        this.matched_fields.add(entry.getNewField());
+        for (FieldMatchEntry match : this.pending_field_matches.values()) {
+            match.removeVote(entry.getNewField());
+        }
     }
 
     public Collection<FieldMatchEntry> getAllFieldMatches() {

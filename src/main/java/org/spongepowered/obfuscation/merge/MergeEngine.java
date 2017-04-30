@@ -28,6 +28,7 @@ import org.spongepowered.despector.ast.SourceSet;
 import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
+import org.spongepowered.despector.util.TypeHelper;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MatchEntry;
@@ -235,12 +236,28 @@ public class MergeEngine {
         }
 
         for (MatchEntry entry : this.matches.values()) {
-            String mapped = this.old_mappings.mapTypeSafe(entry.getOldType().getName());
+            String mapped = this.old_mappings.mapType(entry.getOldType().getName());
             if (mapped != null) {
                 this.new_mappings.addTypeMapping(entry.getNewType().getName(), mapped);
             }
+        }
 
-            // TODO add field and method mappings here
+        for (FieldMatchEntry entry : this.field_matches.values()) {
+            String owner = entry.getOldField().getOwnerName();
+            String mapped = this.old_mappings.mapField(owner, entry.getOldField().getName());
+            if (mapped != null) {
+                String new_owner = entry.getNewField().getOwnerName();
+                this.new_mappings.addFieldMapping(new_owner, entry.getNewField().getName(), mapped);
+            }
+        }
+
+        for (MethodMatchEntry entry : this.method_matches.values()) {
+            String owner = entry.getOldMethod().getOwnerName();
+            String mapped = this.old_mappings.mapMethod(owner, entry.getOldMethod().getName(), entry.getOldMethod().getDescription());
+            if (mapped != null) {
+                String new_owner = entry.getNewMethod().getOwnerName();
+                this.new_mappings.addMethodMapping(new_owner, entry.getNewMethod().getName(), entry.getNewMethod().getDescription(), mapped);
+            }
         }
 
     }

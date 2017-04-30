@@ -68,7 +68,7 @@ public class MatchEntry {
 
     public boolean vote(TypeEntry n) {
         if (this.new_type != null) {
-            return false;
+            return this.new_type == n;
         }
         Integer v = this.votes.get(n);
         if (v != null) {

@@ -138,6 +138,9 @@ public class MergeEngine {
     }
 
     public void setAsMatched(MatchEntry entry) {
+        if (entry.getNewType() == null) {
+            throw new IllegalStateException();
+        }
         this.pending_matches.remove(entry.getOldType());
         this.matches.put(entry.getOldType(), entry);
         this.matched_types.add(entry.getNewType());
@@ -180,6 +183,9 @@ public class MergeEngine {
     }
 
     public void setAsMatched(MethodMatchEntry entry) {
+        if (entry.getNewMethod() == null) {
+            throw new IllegalStateException();
+        }
         this.pending_method_matches.remove(entry.getOldMethod());
         this.method_matches.put(entry.getOldMethod(), entry);
         this.matched_methods.add(entry.getNewMethod());
@@ -222,6 +228,9 @@ public class MergeEngine {
     }
 
     public void setAsMatched(FieldMatchEntry entry) {
+        if (entry.getNewField() == null) {
+            throw new IllegalStateException();
+        }
         this.pending_field_matches.remove(entry.getOldField());
         this.field_matches.put(entry.getOldField(), entry);
         this.matched_fields.add(entry.getNewField());

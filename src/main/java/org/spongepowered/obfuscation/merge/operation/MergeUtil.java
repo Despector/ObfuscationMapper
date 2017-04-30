@@ -35,6 +35,25 @@ import org.spongepowered.despector.ast.insn.condition.CompareCondition;
 import org.spongepowered.despector.ast.insn.condition.Condition;
 import org.spongepowered.despector.ast.insn.condition.InverseCondition;
 import org.spongepowered.despector.ast.insn.condition.OrCondition;
+import org.spongepowered.despector.ast.insn.cst.DoubleConstant;
+import org.spongepowered.despector.ast.insn.cst.FloatConstant;
+import org.spongepowered.despector.ast.insn.cst.IntConstant;
+import org.spongepowered.despector.ast.insn.cst.LongConstant;
+import org.spongepowered.despector.ast.insn.cst.NullConstant;
+import org.spongepowered.despector.ast.insn.cst.StringConstant;
+import org.spongepowered.despector.ast.insn.cst.TypeConstant;
+import org.spongepowered.despector.ast.insn.misc.Cast;
+import org.spongepowered.despector.ast.insn.misc.InstanceOf;
+import org.spongepowered.despector.ast.insn.misc.MultiNewArray;
+import org.spongepowered.despector.ast.insn.misc.NewArray;
+import org.spongepowered.despector.ast.insn.misc.NumberCompare;
+import org.spongepowered.despector.ast.insn.misc.Ternary;
+import org.spongepowered.despector.ast.insn.op.NegativeOperator;
+import org.spongepowered.despector.ast.insn.op.Operator;
+import org.spongepowered.despector.ast.insn.var.ArrayAccess;
+import org.spongepowered.despector.ast.insn.var.InstanceFieldAccess;
+import org.spongepowered.despector.ast.insn.var.LocalAccess;
+import org.spongepowered.despector.ast.insn.var.StaticFieldAccess;
 import org.spongepowered.despector.ast.stmt.Statement;
 import org.spongepowered.despector.ast.stmt.StatementBlock;
 import org.spongepowered.despector.ast.stmt.assign.ArrayAssignment;
@@ -167,9 +186,7 @@ public class MergeUtil {
         }
         InstructionMerger merger = instruction_mergers.get(a.getClass());
         if (merger == null) {
-            return false; // temporary
-            // throw new IllegalStateException("Missing instruction merger for "
-            // + a.getClass().getName());
+            throw new IllegalStateException("Missing instruction merger for " + a.getClass().getName());
         }
         return merger.merge(set, a, b);
     }
@@ -186,9 +203,7 @@ public class MergeUtil {
         }
         ConditionMerger merger = condition_mergers.get(a.getClass());
         if (merger == null) {
-            return false; // temporary
-            // throw new IllegalStateException("Missing condition merger for " +
-            // a.getClass().getName());
+            throw new IllegalStateException("Missing condition merger for " + a.getClass().getName());
         }
         return merger.merge(set, a, b);
     }
@@ -280,6 +295,9 @@ public class MergeUtil {
             if (!merge(set, a.getIndex(), b.getIndex())) {
                 return false;
             }
+            if (!merge(set, a.getValue(), b.getValue())) {
+                return false;
+            }
             return true;
         });
         create(InstanceFieldAssignment.class, (set, a, b) -> {
@@ -287,6 +305,9 @@ public class MergeUtil {
             TypeEntry new_owner = set.getNewSourceSet().get(b.getOwnerName());
             if (old_owner == null || new_owner == null) {
                 if (a.getOwnerName() != b.getOwnerName()) {
+                    return false;
+                }
+                if (a.getFieldName() != b.getFieldName()) {
                     return false;
                 }
             } else {
@@ -321,6 +342,9 @@ public class MergeUtil {
             TypeEntry new_owner = set.getNewSourceSet().get(b.getOwnerName());
             if (old_owner == null || new_owner == null) {
                 if (a.getOwnerName() != b.getOwnerName()) {
+                    return false;
+                }
+                if (a.getFieldName() != b.getFieldName()) {
                     return false;
                 }
             } else {
@@ -801,10 +825,146 @@ public class MergeUtil {
             }
             return merge(set, a.getRight(), b.getRight());
         });
+        create(DoubleConstant.class, (set, a, b) -> true);
+        create(FloatConstant.class, (set, a, b) -> true);
+        create(IntConstant.class, (set, a, b) -> true);
+        create(LongConstant.class, (set, a, b) -> true);
+        create(NullConstant.class, (set, a, b) -> true);
+        create(StringConstant.class, (set, a, b) -> true);
+        create(TypeConstant.class, (set, a, b) -> {
+            return merge(set, a.getConstant(), b.getConstant());
+        });
+        create(Cast.class, (set, a, b) -> {
+            if (!merge(set, a.getType(), b.getType())) {
+                return false;
+            }
+            return merge(set, a.getValue(), b.getValue());
+        });
+        create(InstanceOf.class, (set, a, b) -> {
+            if (!merge(set, a.getType(), b.getType())) {
+                return false;
+            }
+            return merge(set, a.getCheckedValue(), b.getCheckedValue());
+        });
+        create(MultiNewArray.class, (set, a, b) -> {
+            if (!merge(set, a.getType(), b.getType())) {
+                return false;
+            }
+            if (a.getSizes().length != b.getSizes().length) {
+                return false;
+            }
+            for (int i = 0; i < a.getSizes().length; i++) {
+                if (!merge(set, a.getSizes()[i], b.getSizes()[i])) {
+                    return false;
+                }
+            }
+            return true;
+        });
+        create(NewArray.class, (set, a, b) -> {
+            if (!merge(set, a.getType(), b.getType())) {
+                return false;
+            }
+            if (!merge(set, a.getSize(), b.getSize())) {
+                return false;
+            }
+            if (a.getInitializer() == null) {
+                if (b.getInitializer() != null) {
+                    return false;
+                }
+            } else {
+                if (a.getInitializer().length != b.getInitializer().length) {
+                    return false;
+                }
+                for (int i = 0; i < a.getInitializer().length; i++) {
+                    if (!merge(set, a.getInitializer()[i], b.getInitializer()[i])) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        });
+        create(NumberCompare.class, (set, a, b) -> {
+            if (!merge(set, a.getLeftOperand(), b.getLeftOperand())) {
+                return false;
+            }
+            return merge(set, a.getRightOperand(), b.getRightOperand());
+        });
+        create(Ternary.class, (set, a, b) -> {
+            if (!merge(set, a.getCondition(), b.getCondition())) {
+                return false;
+            }
+            if (!merge(set, a.getTrueValue(), b.getTrueValue())) {
+                return false;
+            }
+            return merge(set, a.getFalseValue(), b.getFalseValue());
+        });
+        create(NegativeOperator.class, (set, a, b) -> {
+            return merge(set, a.getOperand(), b.getOperand());
+        });
+        create(Operator.class, (set, a, b) -> {
+            if (a.getOperator() != b.getOperator()) {
+                return false;
+            }
+            if (!merge(set, a.getLeftOperand(), b.getLeftOperand())) {
+                return false;
+            }
+            return merge(set, a.getRightOperand(), b.getRightOperand());
+        });
+        create(ArrayAccess.class, (set, a, b) -> {
+            if (!merge(set, a.getArrayVar(), b.getArrayVar())) {
+                return false;
+            }
+            if (!merge(set, a.getIndex(), b.getIndex())) {
+                return false;
+            }
+            return true;
+        });
+        create(InstanceFieldAccess.class, (set, a, b) -> {
+            TypeEntry old_owner = set.getOldSourceSet().get(a.getOwnerName());
+            TypeEntry new_owner = set.getNewSourceSet().get(b.getOwnerName());
+            if (old_owner == null || new_owner == null) {
+                if (a.getOwnerName() != b.getOwnerName()) {
+                    return false;
+                }
+                return a.getFieldName() == b.getFieldName();
+            }
+            if (!set.vote(old_owner, new_owner)) {
+                return false;
+            }
+            FieldEntry old_field = old_owner.getField(a.getFieldName());
+            FieldEntry new_field = new_owner.getField(b.getFieldName());
+            if (!set.vote(old_field, new_field)) {
+                return false;
+            }
+            if (!merge(set, a.getFieldOwner(), b.getFieldOwner())) {
+                return false;
+            }
+            return true;
+        });
+        create(LocalAccess.class, (set, a, b) -> {
+            if (!merge(set, a.getLocal().getType(), b.getLocal().getType())) {
+                return false;
+            }
+            return true;
+        });
+        create(StaticFieldAccess.class, (set, a, b) -> {
+            TypeEntry old_owner = set.getOldSourceSet().get(a.getOwnerName());
+            TypeEntry new_owner = set.getNewSourceSet().get(b.getOwnerName());
+            if (old_owner == null || new_owner == null) {
+                if (a.getOwnerName() != b.getOwnerName()) {
+                    return false;
+                }
+                return a.getFieldName() == b.getFieldName();
+            }
+            if (!set.vote(old_owner, new_owner)) {
+                return false;
+            }
+            FieldEntry old_field = old_owner.getStaticField(a.getFieldName());
+            FieldEntry new_field = new_owner.getStaticField(b.getFieldName());
+            if (!set.vote(old_field, new_field)) {
+                return false;
+            }
+            return true;
+        });
     }
-
-//    create(Comment.class, (set, a, b) -> {
-//        return false;
-//    });
-
 }

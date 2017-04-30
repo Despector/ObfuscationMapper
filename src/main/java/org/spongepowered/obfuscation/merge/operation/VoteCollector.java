@@ -43,6 +43,9 @@ public class VoteCollector implements MergeOperation {
         Collections.sort(matches, (a, b) -> b.getVoteDifference() - a.getVoteDifference());
         for (int i = 0; i < target_type_count; i++) {
             MatchEntry m = matches.get(i);
+            if (m.getHighest() == null) {
+                continue;
+            }
             m.setNewType(m.getHighest());
             set.setAsMatched(m);
             set.incrementChangeCount();
@@ -53,6 +56,9 @@ public class VoteCollector implements MergeOperation {
         Collections.sort(method_matches, (a, b) -> b.getVoteDifference() - a.getVoteDifference());
         for (int i = 0; i < target_method_count; i++) {
             MethodMatchEntry m = method_matches.get(i);
+            if (m.getHighest() == null) {
+                continue;
+            }
             m.setNewMethod(m.getHighest());
             set.setAsMatched(m);
             set.incrementChangeCount();
@@ -63,6 +69,9 @@ public class VoteCollector implements MergeOperation {
         Collections.sort(field_matches, (a, b) -> b.getVoteDifference() - a.getVoteDifference());
         for (int i = 0; i < target_field_count; i++) {
             FieldMatchEntry m = field_matches.get(i);
+            if (m.getHighest() == null) {
+                continue;
+            }
             m.setNewField(m.getHighest());
             set.setAsMatched(m);
             set.incrementChangeCount();

@@ -70,6 +70,9 @@ public class MethodMatchEntry {
         if (this.new_mth != null) {
             return false;
         }
+        if (this.old_mth.isStatic() ^ n.isStatic()) {
+            return false;
+        }
         Integer v = this.votes.get(n);
         if (v != null) {
             int vote = v + 1;

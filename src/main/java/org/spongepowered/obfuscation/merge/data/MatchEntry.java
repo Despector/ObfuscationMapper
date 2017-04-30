@@ -55,6 +55,10 @@ public class MatchEntry {
     }
 
     public void setNewType(TypeEntry type) {
+        if (this.old_type.getClass() != type.getClass()) {
+            throw new IllegalStateException(
+                    "Attempted to match " + this.old_type.getClass().getSimpleName() + " to " + type.getClass().getSimpleName());
+        }
         this.new_type = type;
         this.votes = null;
     }
@@ -70,6 +74,9 @@ public class MatchEntry {
     public boolean vote(TypeEntry n) {
         if (this.new_type != null) {
             return this.new_type == n;
+        }
+        if (this.old_type.getClass() != n.getClass()) {
+            return false;
         }
         Integer v = this.votes.get(n);
         if (v != null) {

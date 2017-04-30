@@ -120,6 +120,11 @@ public class MergeUtil {
     }
 
     public static boolean merge(MergeEngine set, TypeSignature o, TypeSignature n) {
+        if (o == null && n == null) {
+            return true;
+        } else if (o == null ^ n == null) {
+            return false;
+        }
         if (o instanceof ClassTypeSignature && n instanceof ClassTypeSignature) {
             ClassTypeSignature c = (ClassTypeSignature) o;
             ClassTypeSignature cn = (ClassTypeSignature) n;

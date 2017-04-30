@@ -25,10 +25,12 @@
 package org.spongepowered.obfuscation.merge.operation;
 
 import org.spongepowered.despector.ast.type.ClassEntry;
+import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
 import org.spongepowered.obfuscation.merge.data.MatchEntry;
+import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 
 public class MergeMatchedTypes implements MergeOperation {
 
@@ -50,9 +52,41 @@ public class MergeMatchedTypes implements MergeOperation {
                     set.vote(old_super, new_super);
                 }
             }
-            
-            
-            
+
+            {
+                // This is looking for types (particularily functional
+                // interfaces) that only have a single non-synthetic method as
+                // we can safely match those together
+                MethodEntry old_non_syn = null;
+                for (MethodEntry mth : old.getMethods()) {
+                    if (mth.isSynthetic()) {
+                        continue;
+                    }
+                    if (old_non_syn != null) {
+                        old_non_syn = null;
+                        break;
+                    }
+                    old_non_syn = mth;
+                }
+                MethodEntry new_non_syn = null;
+                for (MethodEntry mth : new_.getMethods()) {
+                    if (mth.isSynthetic()) {
+                        continue;
+                    }
+                    if (new_non_syn != null) {
+                        new_non_syn = null;
+                        break;
+                    }
+                    new_non_syn = mth;
+                }
+
+                if (old_non_syn != null && new_non_syn != null) {
+                    MethodMatchEntry m = set.getPendingMethodMatch(old_non_syn);
+                    m.setNewMethod(new_non_syn);
+                    set.setAsMatched(m);
+                }
+            }
+
         }
 
     }

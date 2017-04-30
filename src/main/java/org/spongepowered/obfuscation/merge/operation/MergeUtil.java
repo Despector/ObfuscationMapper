@@ -82,7 +82,10 @@ public class MergeUtil {
             ClassTypeSignature cn = (ClassTypeSignature) n;
             TypeEntry old_type = set.getOldSourceSet().get(c.getDescriptor());
             TypeEntry new_type = set.getNewSourceSet().get(cn.getDescriptor());
-            return set.getMatch(old_type).vote(new_type);
+            if (old_type == null || new_type == null) {
+                return c.getDescriptor() == cn.getDescriptor();
+            }
+            return set.vote(old_type, new_type);
         } else if (o instanceof GenericClassTypeSignature && n instanceof GenericClassTypeSignature) {
             GenericClassTypeSignature c = (GenericClassTypeSignature) o;
             GenericClassTypeSignature cn = (GenericClassTypeSignature) n;
@@ -91,7 +94,9 @@ public class MergeUtil {
             }
             TypeEntry old_type = set.getOldSourceSet().get(c.getDescriptor());
             TypeEntry new_type = set.getNewSourceSet().get(cn.getDescriptor());
-            if (!set.getMatch(old_type).vote(new_type)) {
+            if ((old_type == null || new_type == null) && c.getDescriptor() != cn.getDescriptor()) {
+                return false;
+            } else if (!set.vote(old_type, new_type)) {
                 return false;
             }
             for (int i = 0; i < c.getArguments().size(); i++) {
@@ -122,7 +127,8 @@ public class MergeUtil {
         StatementMerger merger = statement_mergers.get(a.getClass());
         if (merger == null) {
             return false; // temporary
-            //throw new IllegalStateException("Missing statement merger for " + a.getClass().getName());
+            // throw new IllegalStateException("Missing statement merger for " +
+            // a.getClass().getName());
         }
         return merger.merge(set, a, b);
     }
@@ -140,7 +146,8 @@ public class MergeUtil {
         InstructionMerger merger = instruction_mergers.get(a.getClass());
         if (merger == null) {
             return false; // temporary
-            //throw new IllegalStateException("Missing instruction merger for " + a.getClass().getName());
+            // throw new IllegalStateException("Missing instruction merger for "
+            // + a.getClass().getName());
         }
         return merger.merge(set, a, b);
     }
@@ -158,7 +165,8 @@ public class MergeUtil {
         ConditionMerger merger = condition_mergers.get(a.getClass());
         if (merger == null) {
             return false; // temporary
-            //throw new IllegalStateException("Missing condition merger for " + a.getClass().getName());
+            // throw new IllegalStateException("Missing condition merger for " +
+            // a.getClass().getName());
         }
         return merger.merge(set, a, b);
     }
@@ -212,17 +220,20 @@ public class MergeUtil {
         });
         create(InstanceFieldAssignment.class, (set, a, b) -> {
             TypeEntry old_owner = set.getOldSourceSet().get(a.getOwnerName());
-            TypeEntry new_owner = set.getOldSourceSet().get(a.getOwnerName());
+            TypeEntry new_owner = set.getNewSourceSet().get(b.getOwnerName());
             if (old_owner == null || new_owner == null) {
-                return false;
-            }
-            if (!set.getMatch(old_owner).vote(new_owner)) {
-                return false;
-            }
-            FieldEntry old_field = old_owner.getField(a.getFieldName());
-            FieldEntry new_field = old_owner.getField(a.getFieldName());
-            if (!set.getFieldMatch(old_field).vote(new_field)) {
-                return false;
+                if (a.getOwnerName() != b.getOwnerName()) {
+                    return false;
+                }
+            } else {
+                if (!set.vote(old_owner, new_owner)) {
+                    return false;
+                }
+                FieldEntry old_field = old_owner.getField(a.getFieldName());
+                FieldEntry new_field = new_owner.getField(b.getFieldName());
+                if (!set.getFieldMatch(old_field).vote(new_field)) {
+                    return false;
+                }
             }
             if (!merge(set, a.getOwner(), b.getOwner())) {
                 return false;
@@ -243,17 +254,20 @@ public class MergeUtil {
         });
         create(StaticFieldAssignment.class, (set, a, b) -> {
             TypeEntry old_owner = set.getOldSourceSet().get(a.getOwnerName());
-            TypeEntry new_owner = set.getOldSourceSet().get(a.getOwnerName());
+            TypeEntry new_owner = set.getNewSourceSet().get(b.getOwnerName());
             if (old_owner == null || new_owner == null) {
-                return false;
-            }
-            if (!set.getMatch(old_owner).vote(new_owner)) {
-                return false;
-            }
-            FieldEntry old_field = old_owner.getStaticField(a.getFieldName());
-            FieldEntry new_field = old_owner.getStaticField(a.getFieldName());
-            if (!set.getFieldMatch(old_field).vote(new_field)) {
-                return false;
+                if (a.getOwnerName() != b.getOwnerName()) {
+                    return false;
+                }
+            } else {
+                if (!set.vote(old_owner, new_owner)) {
+                    return false;
+                }
+                FieldEntry old_field = old_owner.getStaticField(a.getFieldName());
+                FieldEntry new_field = new_owner.getStaticField(b.getFieldName());
+                if (!set.getFieldMatch(old_field).vote(new_field)) {
+                    return false;
+                }
             }
             if (!merge(set, a.getValue(), b.getValue())) {
                 return false;

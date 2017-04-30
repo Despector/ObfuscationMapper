@@ -26,11 +26,48 @@ package org.spongepowered.obfuscation.merge.operation;
 
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
+import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
+import org.spongepowered.obfuscation.merge.data.MatchEntry;
+import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
+import org.spongepowered.despector.ast.type.EnumEntry;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class VoteCollector implements MergeOperation {
 
     @Override
     public void operate(MergeEngine set) {
+        List<MatchEntry> matches = new ArrayList<>(set.getPendingMatches());
+        int target_type_count = Math.min(matches.size(), Math.max(20, set.getPendingMatches().size() / 10));
+        Collections.sort(matches, (a, b) -> b.getVoteDifference() - a.getVoteDifference());
+        for (int i = 0; i < target_type_count; i++) {
+            MatchEntry m = matches.get(i);
+            m.setNewType(m.getHighest());
+            set.setAsMatched(m);
+            set.incrementChangeCount();
+        }
+
+        List<MethodMatchEntry> method_matches = new ArrayList<>(set.getPendingMethodMatches());
+        int target_method_count = Math.min(method_matches.size(), Math.max(50, set.getPendingMethodMatches().size() / 10));
+        Collections.sort(method_matches, (a, b) -> b.getVoteDifference() - a.getVoteDifference());
+        for (int i = 0; i < target_method_count; i++) {
+            MethodMatchEntry m = method_matches.get(i);
+            m.setNewMethod(m.getHighest());
+            set.setAsMatched(m);
+            set.incrementChangeCount();
+        }
+
+        List<FieldMatchEntry> field_matches = new ArrayList<>(set.getPendingFieldMatches());
+        int target_field_count = Math.min(field_matches.size(), Math.max(20, set.getPendingFieldMatches().size() / 10));
+        Collections.sort(field_matches, (a, b) -> b.getVoteDifference() - a.getVoteDifference());
+        for (int i = 0; i < target_field_count; i++) {
+            FieldMatchEntry m = field_matches.get(i);
+            m.setNewField(m.getHighest());
+            set.setAsMatched(m);
+            set.incrementChangeCount();
+        }
 
     }
 

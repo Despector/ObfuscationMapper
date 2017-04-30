@@ -97,7 +97,7 @@ public class MatchStringConstants implements MergeOperation {
         for (Map.Entry<String, TypeEntry> e : old_unique.entrySet()) {
             TypeEntry n = new_unique.get(e.getKey());
             if (n != null) {
-                set.getMatch(e.getValue()).vote(n);
+                set.vote(e.getValue(), n);
             }
         }
     }

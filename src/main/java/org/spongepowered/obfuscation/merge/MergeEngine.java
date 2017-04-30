@@ -52,6 +52,10 @@ public class MergeEngine {
     private final Map<MethodEntry, MethodMatchEntry> method_matches = new HashMap<>();
     private final Map<FieldEntry, FieldMatchEntry> field_matches = new HashMap<>();
 
+    private final Map<TypeEntry, MatchEntry> pending_matches = new HashMap<>();
+    private final Map<MethodEntry, MethodMatchEntry> pending_method_matches = new HashMap<>();
+    private final Map<FieldEntry, FieldMatchEntry> pending_field_matches = new HashMap<>();
+
     private final SourceSet old_src;
     private final SourceSet new_src;
     private final MappingsSet old_mappings;
@@ -95,62 +99,114 @@ public class MergeEngine {
         return this.changes_last_cycle;
     }
 
+    public void incrementChangeCount() {
+        this.changes_last_cycle++;
+    }
+
     public void resetChanges() {
         this.changes_last_cycle = 0;
     }
 
     public MatchEntry getMatch(TypeEntry t) {
-        MatchEntry m = this.matches.get(t);
+        return this.matches.get(t);
+    }
+
+    public MatchEntry getPendingMatch(TypeEntry t) {
+        MatchEntry m = getMatch(t);
+        if (m != null) {
+            return m;
+        }
+        m = this.pending_matches.get(t);
         if (m == null) {
             m = new MatchEntry(t);
-            this.matches.put(t, m);
+            this.pending_matches.put(t, m);
         }
         return m;
     }
 
-    public void vote(TypeEntry old, TypeEntry n) {
-        MatchEntry entry = getMatch(old);
-        entry.vote(n);
+    public boolean vote(TypeEntry old, TypeEntry n) {
+        return getPendingMatch(old).vote(n);
+    }
+
+    public void setAsMatched(MatchEntry entry) {
+        this.pending_matches.remove(entry.getOldType());
+        this.matches.put(entry.getOldType(), entry);
     }
 
     public Collection<MatchEntry> getAllMatches() {
         return this.matches.values();
     }
 
+    public Collection<MatchEntry> getPendingMatches() {
+        return this.pending_matches.values();
+    }
+
     public MethodMatchEntry getMethodMatch(MethodEntry t) {
-        MethodMatchEntry m = this.method_matches.get(t);
+        return this.method_matches.get(t);
+    }
+
+    public MethodMatchEntry getPendingMethodMatch(MethodEntry t) {
+        MethodMatchEntry m = getMethodMatch(t);
+        if (m != null) {
+            return m;
+        }
+        m = this.pending_method_matches.get(t);
         if (m == null) {
             m = new MethodMatchEntry(t);
-            this.method_matches.put(t, m);
+            this.pending_method_matches.put(t, m);
         }
         return m;
     }
 
-    public void vote(MethodEntry old, MethodEntry n) {
-        MethodMatchEntry entry = getMethodMatch(old);
-        entry.vote(n);
+    public boolean vote(MethodEntry old, MethodEntry n) {
+        return getPendingMethodMatch(old).vote(n);
+    }
+
+    public void setAsMatched(MethodMatchEntry entry) {
+        this.pending_method_matches.remove(entry.getOldMethod());
+        this.method_matches.put(entry.getOldMethod(), entry);
     }
 
     public Collection<MethodMatchEntry> getAllMethodMatches() {
         return this.method_matches.values();
     }
 
+    public Collection<MethodMatchEntry> getPendingMethodMatches() {
+        return this.pending_method_matches.values();
+    }
+
     public FieldMatchEntry getFieldMatch(FieldEntry t) {
-        FieldMatchEntry m = this.field_matches.get(t);
+        return this.field_matches.get(t);
+    }
+
+    public FieldMatchEntry getPendingFieldMatch(FieldEntry t) {
+        FieldMatchEntry m = getFieldMatch(t);
+        if (m != null) {
+            return m;
+        }
+        m = this.pending_field_matches.get(t);
         if (m == null) {
             m = new FieldMatchEntry(t);
-            this.field_matches.put(t, m);
+            this.pending_field_matches.put(t, m);
         }
         return m;
     }
 
-    public void vote(FieldEntry old, FieldEntry n) {
-        FieldMatchEntry entry = getFieldMatch(old);
-        entry.vote(n);
+    public boolean vote(FieldEntry old, FieldEntry n) {
+        return getPendingFieldMatch(old).vote(n);
+    }
+
+    public void setAsMatched(FieldMatchEntry entry) {
+        this.pending_field_matches.remove(entry.getOldField());
+        this.field_matches.put(entry.getOldField(), entry);
     }
 
     public Collection<FieldMatchEntry> getAllFieldMatches() {
         return this.field_matches.values();
+    }
+
+    public Collection<FieldMatchEntry> getPendingFieldMatches() {
+        return this.pending_field_matches.values();
     }
 
     public void addOperation(int index, MergeOperation op) {

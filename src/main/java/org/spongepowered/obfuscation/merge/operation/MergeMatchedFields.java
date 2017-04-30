@@ -38,6 +38,7 @@ public class MergeMatchedFields implements MergeOperation {
                 continue;
             }
             MergeUtil.merge(set, match.getOldField(), match.getNewField());
+            match.setMerged();
         }
 
     }

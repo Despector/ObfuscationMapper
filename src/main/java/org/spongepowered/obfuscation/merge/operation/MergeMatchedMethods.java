@@ -34,10 +34,11 @@ public class MergeMatchedMethods implements MergeOperation {
     public void operate(MergeEngine set) {
 
         for (MethodMatchEntry match : set.getAllMethodMatches()) {
-            if (match.isMerged()) {
+            if (match.getNewMethod() == null || match.isMerged()) {
                 continue;
             }
             MergeUtil.merge(set, match.getOldMethod(), match.getNewMethod());
+            match.setMerged();
         }
 
     }

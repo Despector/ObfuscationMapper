@@ -53,7 +53,7 @@ public class MatchEnums implements MergeOperation {
                         continue search;
                     }
                 }
-                set.getMatch(m).vote(n);
+                set.vote(m, n);
             }
         }
 

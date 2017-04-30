@@ -35,6 +35,9 @@ public class FieldMatchEntry {
     private FieldEntry new_field;
     private boolean merged = false;
 
+    private int highest = 0;
+    private FieldEntry highest_type = null;
+    private int second = 0;
     private Map<FieldEntry, Integer> votes = new HashMap<>();
 
     public FieldMatchEntry(FieldEntry old) {
@@ -59,6 +62,7 @@ public class FieldMatchEntry {
 
     public void setNewField(FieldEntry type) {
         this.new_field = type;
+        this.votes = null;
     }
 
     public boolean vote(FieldEntry n) {
@@ -67,15 +71,43 @@ public class FieldMatchEntry {
         }
         Integer v = this.votes.get(n);
         if (v != null) {
-            this.votes.put(n, v + 1);
+            int vote = v + 1;
+            this.votes.put(n, vote);
+            if (vote > this.highest) {
+                if (n == this.highest_type) {
+                    this.highest = vote;
+                } else {
+                    this.second = this.highest;
+                    this.highest = vote;
+                    this.highest_type = n;
+                }
+            } else if (vote > this.second) {
+                this.second = vote;
+            }
         } else {
             this.votes.put(n, 1);
+            if (this.highest == 0) {
+                this.highest = 1;
+                this.highest_type = n;
+            }
         }
         return true;
     }
 
     public Map<FieldEntry, Integer> getVotes() {
         return this.votes;
+    }
+
+    public int getHighestVote() {
+        return this.highest;
+    }
+
+    public FieldEntry getHighest() {
+        return this.highest_type;
+    }
+
+    public int getVoteDifference() {
+        return this.highest - this.second;
     }
 
 }

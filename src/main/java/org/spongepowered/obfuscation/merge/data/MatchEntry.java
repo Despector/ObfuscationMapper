@@ -24,6 +24,7 @@
  */
 package org.spongepowered.obfuscation.merge.data;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import org.spongepowered.despector.ast.type.TypeEntry;
 
 import java.util.HashMap;
@@ -34,10 +35,13 @@ public class MatchEntry {
     private final TypeEntry old_type;
     private TypeEntry new_type;
 
+    private int highest = 0;
+    private TypeEntry highest_type = null;
+    private int second = 0;
     private Map<TypeEntry, Integer> votes = new HashMap<>();
 
     public MatchEntry(TypeEntry old) {
-        this.old_type = old;
+        this.old_type = checkNotNull(old, "old");
     }
 
     public TypeEntry getOldType() {
@@ -50,6 +54,7 @@ public class MatchEntry {
 
     public void setNewType(TypeEntry type) {
         this.new_type = type;
+        this.votes = null;
     }
 
     public boolean vote(TypeEntry n) {
@@ -58,15 +63,43 @@ public class MatchEntry {
         }
         Integer v = this.votes.get(n);
         if (v != null) {
-            this.votes.put(n, v + 1);
+            int vote = v + 1;
+            this.votes.put(n, vote);
+            if (vote > this.highest) {
+                if (n == this.highest_type) {
+                    this.highest = vote;
+                } else {
+                    this.second = this.highest;
+                    this.highest = vote;
+                    this.highest_type = n;
+                }
+            } else if (vote > this.second) {
+                this.second = vote;
+            }
         } else {
             this.votes.put(n, 1);
+            if (this.highest == 0) {
+                this.highest = 1;
+                this.highest_type = n;
+            }
         }
         return true;
     }
 
     public Map<TypeEntry, Integer> getVotes() {
         return this.votes;
+    }
+
+    public int getHighestVote() {
+        return this.highest;
+    }
+
+    public TypeEntry getHighest() {
+        return this.highest_type;
+    }
+
+    public int getVoteDifference() {
+        return this.highest - this.second;
     }
 
 }

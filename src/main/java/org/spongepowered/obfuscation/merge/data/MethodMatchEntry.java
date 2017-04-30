@@ -35,6 +35,9 @@ public class MethodMatchEntry {
     private MethodEntry new_mth;
     private boolean merged = false;
 
+    private int highest = 0;
+    private MethodEntry highest_type = null;
+    private int second = 0;
     private Map<MethodEntry, Integer> votes = new HashMap<>();
 
     public MethodMatchEntry(MethodEntry old) {
@@ -59,6 +62,7 @@ public class MethodMatchEntry {
 
     public void setNewMethod(MethodEntry type) {
         this.new_mth = type;
+        this.votes = null;
     }
 
     public boolean vote(MethodEntry n) {
@@ -67,15 +71,43 @@ public class MethodMatchEntry {
         }
         Integer v = this.votes.get(n);
         if (v != null) {
-            this.votes.put(n, v + 1);
+            int vote = v + 1;
+            this.votes.put(n, vote);
+            if (vote > this.highest) {
+                if (n == this.highest_type) {
+                    this.highest = vote;
+                } else {
+                    this.second = this.highest;
+                    this.highest = vote;
+                    this.highest_type = n;
+                }
+            } else if (vote > this.second) {
+                this.second = vote;
+            }
         } else {
             this.votes.put(n, 1);
+            if (this.highest == 0) {
+                this.highest = 1;
+                this.highest_type = n;
+            }
         }
         return true;
     }
 
     public Map<MethodEntry, Integer> getVotes() {
         return this.votes;
+    }
+
+    public int getHighestVote() {
+        return this.highest;
+    }
+
+    public MethodEntry getHighest() {
+        return this.highest_type;
+    }
+
+    public int getVoteDifference() {
+        return this.highest - this.second;
     }
 
 }

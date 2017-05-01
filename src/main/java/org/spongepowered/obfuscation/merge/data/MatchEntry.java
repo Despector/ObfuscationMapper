@@ -78,6 +78,9 @@ public class MatchEntry {
         if (this.old_type.getClass() != n.getClass()) {
             return false;
         }
+        if (this.old_type.isSynthetic() || n.isSynthetic()) {
+            return true;
+        }
         Integer v = this.votes.get(n);
         if (v != null) {
             int vote = v + 1;

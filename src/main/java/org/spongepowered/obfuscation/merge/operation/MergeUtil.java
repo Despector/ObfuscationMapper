@@ -115,9 +115,7 @@ public class MergeUtil {
             if (i >= ninsn.getStatementCount()) {
                 break;
             }
-            if (!merge(set, oinsn.getStatement(i), ninsn.getStatement(i))) {
-                break;
-            }
+            merge(set, oinsn.getStatement(i), ninsn.getStatement(i));
         }
 
     }
@@ -166,7 +164,7 @@ public class MergeUtil {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static boolean merge(MergeEngine set, Statement a, Statement b) {
+    public static boolean merge(MergeEngine set, Statement a, Statement b) {
         if (a == null && b == null) {
             return true;
         } else if (a == null ^ b == null) {
@@ -183,7 +181,7 @@ public class MergeUtil {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static boolean merge(MergeEngine set, Instruction a, Instruction b) {
+    public static boolean merge(MergeEngine set, Instruction a, Instruction b) {
         if (a == null && b == null) {
             return true;
         } else if (a == null ^ b == null) {
@@ -200,7 +198,7 @@ public class MergeUtil {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static boolean merge(MergeEngine set, Condition a, Condition b) {
+    public static boolean merge(MergeEngine set, Condition a, Condition b) {
         if (a == null && b == null) {
             return true;
         } else if (a == null ^ b == null) {
@@ -681,7 +679,7 @@ public class MergeUtil {
                     return false;
                 }
             }
-            if (a.getParams().length != b.getParams().length) {
+            if (a.getParameters().length != b.getParameters().length) {
                 return false;
             }
             List<String> ap = TypeHelper.splitSig(a.getMethodDescription());
@@ -710,8 +708,8 @@ public class MergeUtil {
                     return false;
                 }
             }
-            for (int i = 0; i < a.getParams().length; i++) {
-                if (!merge(set, a.getParams()[i], b.getParams()[i])) {
+            for (int i = 0; i < a.getParameters().length; i++) {
+                if (!merge(set, a.getParameters()[i], b.getParameters()[i])) {
                     return false;
                 }
             }
@@ -781,7 +779,7 @@ public class MergeUtil {
                     return false;
                 }
             }
-            if (a.getParams().length != b.getParams().length) {
+            if (a.getParameters().length != b.getParameters().length) {
                 return false;
             }
             List<String> ap = TypeHelper.splitSig(a.getMethodDescription());
@@ -810,8 +808,8 @@ public class MergeUtil {
                     return false;
                 }
             }
-            for (int i = 0; i < a.getParams().length; i++) {
-                if (!merge(set, a.getParams()[i], b.getParams()[i])) {
+            for (int i = 0; i < a.getParameters().length; i++) {
+                if (!merge(set, a.getParameters()[i], b.getParameters()[i])) {
                     return false;
                 }
             }

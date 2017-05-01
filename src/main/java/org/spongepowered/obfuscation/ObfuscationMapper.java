@@ -36,6 +36,7 @@ import org.spongepowered.obfuscation.data.MappingsIO;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.data.MappingsSet.MethodMapping;
 import org.spongepowered.obfuscation.merge.MergeEngine;
+import org.spongepowered.obfuscation.merge.operation.CustomMethodMergers;
 import org.spongepowered.obfuscation.merge.operation.MatchEnums;
 import org.spongepowered.obfuscation.merge.operation.MatchStringConstants;
 import org.spongepowered.obfuscation.merge.operation.MergeInitializers;
@@ -195,6 +196,7 @@ public class ObfuscationMapper {
         engine.addOperation(new MatchEnums());
         engine.addOperation(new MergeInitializers());
         engine.addOperation(new MergeMatchedTypes());
+        engine.addOperation(new CustomMethodMergers());
         engine.addOperation(new MergeMatchedMethods());
         engine.addOperation(new MergeMatchedFields());
         engine.addOperation(new VoteCollector());

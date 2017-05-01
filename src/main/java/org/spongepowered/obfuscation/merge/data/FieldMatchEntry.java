@@ -74,6 +74,9 @@ public class FieldMatchEntry {
         if (this.old_field.isStatic() ^ n.isStatic()) {
             return false;
         }
+        if (this.old_field.isSynthetic() || n.isSynthetic()) {
+            return true;
+        }
         Integer v = this.votes.get(n);
         if (v != null) {
             int vote = v + 1;

@@ -73,6 +73,9 @@ public class MethodMatchEntry {
         if (this.old_mth.isStatic() ^ n.isStatic()) {
             return false;
         }
+        if (this.old_mth.isSynthetic() || n.isSynthetic()) {
+            return true;
+        }
         Integer v = this.votes.get(n);
         if (v != null) {
             int vote = v + 1;

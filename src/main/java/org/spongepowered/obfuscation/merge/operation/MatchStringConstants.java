@@ -128,9 +128,7 @@ public class MatchStringConstants implements MergeOperation {
             TypeEntry type = this.unique.get(cst.getConstant());
             if (type == null) {
                 this.unique.put(cst.getConstant(), this.current);
-                return;
-            }
-            if (type != this.current) {
+            } else if (type != this.current) {
                 this.non_unique.add(cst.getConstant());
                 this.unique.remove(cst.getConstant());
             }
@@ -226,8 +224,6 @@ public class MatchStringConstants implements MergeOperation {
 
         @Override
         public void visitMultiNewArray(MultiNewArray insn) {
-            // TODO Auto-generated method stub
-
         }
 
     }

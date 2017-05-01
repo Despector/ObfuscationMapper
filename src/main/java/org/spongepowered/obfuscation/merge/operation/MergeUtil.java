@@ -104,9 +104,12 @@ public class MergeUtil {
                 merge(set, o.getParamTypes().get(i), n.getParamTypes().get(i));
             }
         }
-
         StatementBlock oinsn = o.getInstructions();
         StatementBlock ninsn = n.getInstructions();
+
+        if (oinsn == null || ninsn == null) {
+            return;
+        }
 
         for (int i = 0; i < oinsn.getStatementCount(); i++) {
             if (i >= ninsn.getStatementCount()) {
@@ -228,6 +231,21 @@ public class MergeUtil {
         return null;
     }
 
+    public static FieldEntry findField(TypeEntry type, String name) {
+        FieldEntry fld = type.getField(name);
+        if (fld != null) {
+            return fld;
+        }
+        if (type instanceof ClassEntry) {
+            ClassEntry cls = (ClassEntry) type;
+            TypeEntry sup = type.getSource().get(cls.getSuperclassName());
+            if (sup != null) {
+                return findField(sup, name);
+            }
+        }
+        return null;
+    }
+
     public static MethodEntry findStaticMethod(TypeEntry type, String name, String desc) {
         MethodEntry mth = type.getStaticMethod(name, desc);
         if (mth != null) {
@@ -249,6 +267,33 @@ public class MergeUtil {
                 mth = findStaticMethod(sup, name, desc);
                 if (mth != null) {
                     return mth;
+                }
+            }
+        }
+        return null;
+    }
+
+    public static FieldEntry findStaticField(TypeEntry type, String name) {
+        FieldEntry fld = type.getStaticField(name);
+        if (fld != null) {
+            return fld;
+        }
+        if (type instanceof ClassEntry) {
+            ClassEntry cls = (ClassEntry) type;
+            TypeEntry sup = type.getSource().get(cls.getSuperclassName());
+            if (sup != null) {
+                fld = findStaticField(sup, name);
+                if (fld != null) {
+                    return fld;
+                }
+            }
+        }
+        for (String inter : type.getInterfaces()) {
+            TypeEntry sup = type.getSource().get(inter);
+            if (sup != null) {
+                fld = findStaticField(sup, name);
+                if (fld != null) {
+                    return fld;
                 }
             }
         }
@@ -319,8 +364,8 @@ public class MergeUtil {
                 if (!set.vote(old_owner, new_owner)) {
                     return false;
                 }
-                FieldEntry old_field = old_owner.getField(a.getFieldName());
-                FieldEntry new_field = new_owner.getField(b.getFieldName());
+                FieldEntry old_field = findField(old_owner, a.getFieldName());
+                FieldEntry new_field = findField(new_owner, b.getFieldName());
                 if (!set.vote(old_field, new_field)) {
                     return false;
                 }
@@ -356,8 +401,8 @@ public class MergeUtil {
                 if (!set.vote(old_owner, new_owner)) {
                     return false;
                 }
-                FieldEntry old_field = old_owner.getStaticField(a.getFieldName());
-                FieldEntry new_field = new_owner.getStaticField(b.getFieldName());
+                FieldEntry old_field = findStaticField(old_owner, a.getFieldName());
+                FieldEntry new_field = findStaticField(new_owner, b.getFieldName());
                 if (!set.vote(old_field, new_field)) {
                     return false;
                 }
@@ -936,8 +981,8 @@ public class MergeUtil {
             if (!set.vote(old_owner, new_owner)) {
                 return false;
             }
-            FieldEntry old_field = old_owner.getField(a.getFieldName());
-            FieldEntry new_field = new_owner.getField(b.getFieldName());
+            FieldEntry old_field = findField(old_owner, a.getFieldName());
+            FieldEntry new_field = findField(new_owner, b.getFieldName());
             if (!set.vote(old_field, new_field)) {
                 return false;
             }
@@ -964,8 +1009,8 @@ public class MergeUtil {
             if (!set.vote(old_owner, new_owner)) {
                 return false;
             }
-            FieldEntry old_field = old_owner.getStaticField(a.getFieldName());
-            FieldEntry new_field = new_owner.getStaticField(b.getFieldName());
+            FieldEntry old_field = findStaticField(old_owner, a.getFieldName());
+            FieldEntry new_field = findStaticField(new_owner, b.getFieldName());
             if (!set.vote(old_field, new_field)) {
                 return false;
             }

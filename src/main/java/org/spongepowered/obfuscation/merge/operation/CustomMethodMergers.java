@@ -24,17 +24,22 @@
  */
 package org.spongepowered.obfuscation.merge.operation;
 
+import org.spongepowered.despector.ast.SourceSet;
 import org.spongepowered.despector.ast.insn.Instruction;
 import org.spongepowered.despector.ast.insn.cst.StringConstant;
 import org.spongepowered.despector.ast.insn.misc.Cast;
 import org.spongepowered.despector.ast.stmt.Statement;
+import org.spongepowered.despector.ast.stmt.StatementBlock;
 import org.spongepowered.despector.ast.stmt.assign.StaticFieldAssignment;
+import org.spongepowered.despector.ast.stmt.branch.For;
 import org.spongepowered.despector.ast.stmt.invoke.InstanceMethodInvoke;
+import org.spongepowered.despector.ast.stmt.invoke.InvokeStatement;
 import org.spongepowered.despector.ast.stmt.invoke.New;
 import org.spongepowered.despector.ast.stmt.invoke.StaticMethodInvoke;
 import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
+import org.spongepowered.despector.util.TypeHelper;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
@@ -222,6 +227,73 @@ public class CustomMethodMergers implements MergeOperation {
         }
     }
 
+    private static void register_blocks(MethodMatchEntry match, MergeEngine set) {
+        if (match.getOldMethod().getInstructions() == null || match.getNewMethod().getInstructions() == null) {
+            return;
+        }
+        Map<String, TypeEntry> old_types = new HashMap<>();
+        Map<String, TypeEntry> new_types = new HashMap<>();
+        findBlockTypes(match.getOldMethod().getInstructions(), set.getOldSourceSet(), old_types);
+        findBlockTypes(match.getNewMethod().getInstructions(), set.getNewSourceSet(), new_types);
+        for (Map.Entry<String, TypeEntry> e : new_types.entrySet()) {
+            TypeEntry old = old_types.get(e.getKey());
+            if (old != null) {
+                set.vote(old, e.getValue());
+            }
+        }
+    }
+
+    private static void findBlockTypes(StatementBlock block, SourceSet src, Map<String, TypeEntry> types) {
+        for (Statement stmt : block) {
+            if (stmt instanceof For) {
+                break;
+            }
+            if (stmt instanceof InvokeStatement) {
+                Instruction inner = ((InvokeStatement) stmt).getInstruction();
+                if (inner instanceof StaticMethodInvoke) {
+                    StaticMethodInvoke reg = (StaticMethodInvoke) inner;
+                    if (reg.getParameters().length != 3) {
+                        continue;
+                    }
+                    if (!reg.getMethodDescription().startsWith("(ILjava/lang/String;")) {
+                        continue;
+                    }
+                    Instruction val = reg.getParameters()[2];
+                    if (val instanceof Cast) {
+                        val = ((Cast) val).getValue();
+                    }
+                    String key = null;
+                    if (!(reg.getParameters()[1] instanceof StringConstant)) {
+                        if (val instanceof InstanceMethodInvoke) {
+                            InstanceMethodInvoke invoke = (InstanceMethodInvoke) val;
+                            if (!invoke.getMethodDescription().startsWith("(Ljava/lang/String;)")
+                                    || !(invoke.getParameters()[0] instanceof StringConstant)) {
+                                continue;
+                            }
+                            key = ((StringConstant) invoke.getParameters()[0]).getConstant();
+                        }
+                    } else {
+                        key = ((StringConstant) reg.getParameters()[1]).getConstant();
+                    }
+                    if (key == null) {
+                        continue;
+                    }
+                    while (val instanceof InstanceMethodInvoke) {
+                        val = ((InstanceMethodInvoke) val).getCallee();
+                    }
+                    if (!(val instanceof New)) {
+                        continue;
+                    }
+                    String type = TypeHelper.descToType(((New) val).getType().getDescriptor());
+                    TypeEntry block_type = src.get(type);
+                    if (block_type != null) {
+                        types.put(key, block_type);
+                    }
+                }
+            }
+        }
+    }
+
     static {
         custom_mergers.put("Lnet/minecraft/init/SoundEvents;<clinit>()V", CustomMethodMergers::bootstrap_handler);
         custom_mergers.put("Lnet/minecraft/init/Blocks;<clinit>()V", CustomMethodMergers::bootstrap_handler);
@@ -238,6 +310,8 @@ public class CustomMethodMergers implements MergeOperation {
                 CustomMethodMergers::noop);
         custom_mergers.put("Lnet/minecraft/util/datafix/DataFixesManager;func_188279_a()Lnet/minecraft/util/datafix/DataFixer;",
                 CustomMethodMergers::noop);
+
+        custom_mergers.put("Lnet/minecraft/block/Block;func_149671_p()V", CustomMethodMergers::register_blocks);
     }
 
 }

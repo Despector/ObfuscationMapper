@@ -51,6 +51,10 @@ public class MappingUsageFinder implements TypeVisitor {
         return this.types.size();
     }
 
+    public boolean sawType(String obf) {
+        return this.types.contains(obf);
+    }
+
     public int getSeenMethods() {
         return this.methods.size();
     }

@@ -54,17 +54,23 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 public class ObfuscationMapper {
 
     private static final Map<String, Consumer<String>> flags = new HashMap<>();
     private static boolean is_cached = false;
+    private static boolean output_unmatched = false;
     private static String validation_mappings = null;
 
     static {
@@ -78,6 +84,9 @@ public class ObfuscationMapper {
         });
         flags.put("--cache", (arg) -> {
             is_cached = true;
+        });
+        flags.put("--output_unmatched", (arg) -> {
+            output_unmatched = true;
         });
     }
 
@@ -276,6 +285,35 @@ public class ObfuscationMapper {
             System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.fieldCount(), usage.getSeenFields(), field_percent);
             float method_percent = (new_mappings.methodCount() / (float) usage.getSeenMethods()) * 100.0f;
             System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.methodCount(), usage.getSeenMethods(), method_percent);
+        }
+
+        if (output_unmatched) {
+            List<String> unmatched_types = new ArrayList<>();
+
+            for (String obf : old_mappings.getMappedTypes()) {
+                if (!usage.sawType(obf)) {
+                    continue;
+                }
+                String mapped = old_mappings.mapType(obf);
+                if (Pattern.matches("\\$[0-9]+", mapped)) {
+                    continue;
+                }
+                String new_obf = new_mappings.inverseType(mapped);
+                if (new_obf == null) {
+                    unmatched_types.add(mapped);
+                }
+            }
+
+            Collections.sort(unmatched_types);
+
+            Path unmatched_out_path = root.resolve("unmatched.txt");
+            System.out.println("Outputting unmatched types to " + unmatched_out_path.toAbsolutePath().toString());
+            try (PrintWriter writer = new PrintWriter(unmatched_out_path.toFile())) {
+                for (String type : unmatched_types) {
+                    writer.println(type);
+                }
+            }
+
         }
 
         Path mappings_out = root.resolve(output_mappings);

@@ -24,6 +24,7 @@
  */
 package org.spongepowered.obfuscation.merge.operation;
 
+import org.spongepowered.despector.ast.type.TypeEntry;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
 import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
@@ -59,6 +60,14 @@ public class VoteCollector implements MergeOperation {
             if (m.getHighest() == null) {
                 continue;
             }
+            TypeEntry old_owner = set.getOldSourceSet().get(m.getOldMethod().getOwnerName());
+            TypeEntry new_owner = set.getNewSourceSet().get(m.getHighest().getOwnerName());
+            MatchEntry owner_match = set.getPendingMatch(old_owner);
+            if (owner_match.getNewType() == null) {
+                owner_match.setNewType(new_owner);
+                set.setAsMatched(owner_match);
+                set.incrementChangeCount();
+            }
             m.setNewMethod(m.getHighest());
             set.setAsMatched(m);
             set.incrementChangeCount();
@@ -72,11 +81,18 @@ public class VoteCollector implements MergeOperation {
             if (m.getHighest() == null) {
                 continue;
             }
+            TypeEntry old_owner = set.getOldSourceSet().get(m.getOldField().getOwnerName());
+            TypeEntry new_owner = set.getNewSourceSet().get(m.getHighest().getOwnerName());
+            MatchEntry owner_match = set.getPendingMatch(old_owner);
+            if (owner_match.getNewType() == null) {
+                owner_match.setNewType(new_owner);
+                set.setAsMatched(owner_match);
+                set.incrementChangeCount();
+            }
             m.setNewField(m.getHighest());
             set.setAsMatched(m);
             set.incrementChangeCount();
         }
-
     }
 
 }

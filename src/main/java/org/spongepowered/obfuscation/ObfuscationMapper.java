@@ -212,11 +212,6 @@ public class ObfuscationMapper {
 
         engine.merge();
 
-        System.out.println("Mapped " + new_mappings.packagesCount() + " packages");
-        System.out.println("Mapped " + new_mappings.typeCount() + " classes");
-        System.out.println("Mapped " + new_mappings.fieldCount() + " fields");
-        System.out.println("Mapped " + new_mappings.methodCount() + " methods");
-
         if (validation != null) {
             int type_validation_errors = 0;
             int method_validation_errors = 0;
@@ -251,9 +246,22 @@ public class ObfuscationMapper {
                 }
             }
 
+            System.out.println("Mapped " + new_mappings.packagesCount() + " packages");
+            System.out.println("Mapped " + new_mappings.typeCount() + " classes");
+            System.out.println("Mapped " + new_mappings.fieldCount() + " fields");
+            System.out.println("Mapped " + new_mappings.methodCount() + " methods");
+
             System.out.println("Type validation errors: " + type_validation_errors);
             System.out.println("Method validation errors: " + method_validation_errors);
             System.out.println("Field validation errors: " + field_validation_errors);
+            int total_mapped = new_mappings.typeCount() + new_mappings.fieldCount() + new_mappings.methodCount();
+            int error_count = type_validation_errors + method_validation_errors + field_validation_errors;
+            System.out.printf("Accuracy: %.2f%%\n", (1 - (error_count / (float) total_mapped)) * 100);
+        } else {
+            System.out.println("Mapped " + new_mappings.packagesCount() + " packages");
+            System.out.println("Mapped " + new_mappings.typeCount() + " classes");
+            System.out.println("Mapped " + new_mappings.fieldCount() + " fields");
+            System.out.println("Mapped " + new_mappings.methodCount() + " methods");
         }
 
         Path mappings_out = root.resolve(output_mappings);

@@ -57,7 +57,8 @@ public class CustomMethodMergers implements MergeOperation {
             }
             MethodEntry old = match.getOldMethod();
             MappingsSet old_set = set.getOldMappings();
-            String key = "L" + old_set.mapTypeSafe(old.getOwnerName()) + ";" + old_set.mapMethodSafe(old.getOwnerName(), old.getName(), old.getDescription())
+            String key = "L" + old_set.mapTypeSafe(old.getOwnerName()) + ";"
+                    + old_set.mapMethodSafe(old.getOwnerName(), old.getName(), old.getDescription())
                     + MappingsSet.MethodMapping.mapSig(old.getDescription(), old_set);
             BiConsumer<MethodMatchEntry, MergeEngine> merger = custom_mergers.get(key);
             if (merger != null) {
@@ -233,8 +234,10 @@ public class CustomMethodMergers implements MergeOperation {
 
         custom_mergers.put("Lnet/minecraft/stats/StatList;<clinit>()V", CustomMethodMergers::statlist_handler);
 
-        custom_mergers.put("Lnet/minecraft/util/datafix/DataFixesManager;func_188276_a(Lnet/minecraft/util/datafix/DataFixer;)V", CustomMethodMergers::noop);
-        custom_mergers.put("Lnet/minecraft/util/datafix/DataFixesManager;func_188279_a()Lnet/minecraft/util/datafix/DataFixer;", CustomMethodMergers::noop);
+        custom_mergers.put("Lnet/minecraft/util/datafix/DataFixesManager;func_188276_a(Lnet/minecraft/util/datafix/DataFixer;)V",
+                CustomMethodMergers::noop);
+        custom_mergers.put("Lnet/minecraft/util/datafix/DataFixesManager;func_188279_a()Lnet/minecraft/util/datafix/DataFixer;",
+                CustomMethodMergers::noop);
     }
 
 }

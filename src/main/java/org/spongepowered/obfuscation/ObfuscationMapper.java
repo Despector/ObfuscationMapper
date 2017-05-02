@@ -32,6 +32,7 @@ import org.spongepowered.despector.decompiler.DirectoryWalker;
 import org.spongepowered.despector.util.serialization.AstLoader;
 import org.spongepowered.despector.util.serialization.MessagePacker;
 import org.spongepowered.obfuscation.config.ObfConfigManager;
+import org.spongepowered.obfuscation.data.MappingUsageFinder;
 import org.spongepowered.obfuscation.data.MappingsIO;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.data.MappingsSet.MethodMapping;
@@ -40,8 +41,8 @@ import org.spongepowered.obfuscation.merge.operation.CustomMethodMergers;
 import org.spongepowered.obfuscation.merge.operation.MatchDiscreteFields;
 import org.spongepowered.obfuscation.merge.operation.MatchDiscreteMethods;
 import org.spongepowered.obfuscation.merge.operation.MatchEnums;
-import org.spongepowered.obfuscation.merge.operation.MatchReferences;
 import org.spongepowered.obfuscation.merge.operation.MatchMethodGroups;
+import org.spongepowered.obfuscation.merge.operation.MatchReferences;
 import org.spongepowered.obfuscation.merge.operation.MatchStringConstants;
 import org.spongepowered.obfuscation.merge.operation.MergeInitializers;
 import org.spongepowered.obfuscation.merge.operation.MergeMatchedFields;
@@ -216,6 +217,9 @@ public class ObfuscationMapper {
 
         engine.merge();
 
+        MappingUsageFinder usage = new MappingUsageFinder(old_mappings);
+        old_sourceset.accept(usage);
+
         if (validation != null) {
             int type_validation_errors = 0;
             int method_validation_errors = 0;
@@ -251,9 +255,12 @@ public class ObfuscationMapper {
             }
 
             System.out.println("Mapped " + new_mappings.packagesCount() + " packages");
-            System.out.println("Mapped " + new_mappings.typeCount() + " classes");
-            System.out.println("Mapped " + new_mappings.fieldCount() + " fields");
-            System.out.println("Mapped " + new_mappings.methodCount() + " methods");
+            float type_percent = (new_mappings.typeCount() / (float) usage.getSeenTypes()) * 100.0f;
+            System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.typeCount(), usage.getSeenTypes(), type_percent);
+            float field_percent = (new_mappings.fieldCount() / (float) usage.getSeenFields()) * 100.0f;
+            System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.fieldCount(), usage.getSeenFields(), field_percent);
+            float method_percent = (new_mappings.methodCount() / (float) usage.getSeenMethods()) * 100.0f;
+            System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.methodCount(), usage.getSeenMethods(), method_percent);
 
             System.out.println("Type validation errors: " + type_validation_errors);
             System.out.println("Method validation errors: " + method_validation_errors);
@@ -263,9 +270,12 @@ public class ObfuscationMapper {
             System.out.printf("Accuracy: %.2f%%\n", (1 - (error_count / (float) total_mapped)) * 100);
         } else {
             System.out.println("Mapped " + new_mappings.packagesCount() + " packages");
-            System.out.println("Mapped " + new_mappings.typeCount() + " classes");
-            System.out.println("Mapped " + new_mappings.fieldCount() + " fields");
-            System.out.println("Mapped " + new_mappings.methodCount() + " methods");
+            float type_percent = (new_mappings.typeCount() / (float) usage.getSeenTypes()) * 100.0f;
+            System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.typeCount(), usage.getSeenTypes(), type_percent);
+            float field_percent = (new_mappings.fieldCount() / (float) usage.getSeenFields()) * 100.0f;
+            System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.fieldCount(), usage.getSeenFields(), field_percent);
+            float method_percent = (new_mappings.methodCount() / (float) usage.getSeenMethods()) * 100.0f;
+            System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.methodCount(), usage.getSeenMethods(), method_percent);
         }
 
         Path mappings_out = root.resolve(output_mappings);

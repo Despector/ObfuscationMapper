@@ -27,6 +27,7 @@ package org.spongepowered.obfuscation.merge.data;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.spongepowered.despector.ast.type.FieldEntry;
+import org.spongepowered.despector.ast.type.TypeEntry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +35,7 @@ import java.util.Map;
 public class FieldMatchEntry {
 
     private final FieldEntry old_field;
+    private TypeEntry owner_match = null;
     private FieldEntry new_field;
     private boolean merged = false;
 
@@ -76,6 +78,9 @@ public class FieldMatchEntry {
         }
         if (this.old_field.isSynthetic() || n.isSynthetic()) {
             return true;
+        }
+        if (this.owner_match != null && !n.getOwnerName().equals(this.owner_match.getName())) {
+            return false;
         }
         Integer v = this.votes.get(n);
         if (v != null) {
@@ -132,6 +137,10 @@ public class FieldMatchEntry {
                 this.second = e.getValue();
             }
         }
+    }
+
+    public void setOwnerMatch(TypeEntry type) {
+        this.owner_match = type;
     }
 
 }

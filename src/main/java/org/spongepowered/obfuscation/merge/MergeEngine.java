@@ -147,6 +147,10 @@ public class MergeEngine {
         return m.vote(n);
     }
 
+    public boolean isTypeMatched(TypeEntry n) {
+        return this.matched_types.contains(n) || this.matches.containsKey(n);
+    }
+
     public void setAsMatched(MatchEntry entry) {
         if (entry.getNewType() == null) {
             throw new IllegalStateException();

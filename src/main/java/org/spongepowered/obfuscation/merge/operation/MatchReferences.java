@@ -87,10 +87,11 @@ import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
 import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MatchEntry;
+import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 
 import java.util.Collection;
 
-public class MatchFieldRefs implements MergeOperation {
+public class MatchReferences implements MergeOperation {
 
     private boolean prepared = false;
     private final Multimap<FieldEntry, MethodEntry> old_field_accesses = HashMultimap.create();
@@ -98,12 +99,25 @@ public class MatchFieldRefs implements MergeOperation {
     private final Multimap<FieldEntry, MethodEntry> new_field_accesses = HashMultimap.create();
     private final Multimap<FieldEntry, MethodEntry> new_field_assignments = HashMultimap.create();
 
+    private final Multimap<String, MethodEntry> old_ext_accesses = HashMultimap.create();
+    private final Multimap<String, MethodEntry> old_ext_assignments = HashMultimap.create();
+    private final Multimap<String, MethodEntry> new_ext_accesses = HashMultimap.create();
+    private final Multimap<String, MethodEntry> new_ext_assignments = HashMultimap.create();
+
+    private final Multimap<MethodEntry, MethodEntry> old_method_invokes = HashMultimap.create();
+    private final Multimap<MethodEntry, MethodEntry> new_method_invokes = HashMultimap.create();
+
+    private final Multimap<String, MethodEntry> old_ext_invokes = HashMultimap.create();
+    private final Multimap<String, MethodEntry> new_ext_invokes = HashMultimap.create();
+
     private void prep(MergeEngine set) {
-        FieldRefFinder new_finder = new FieldRefFinder(set.getNewSourceSet(), this.new_field_accesses, this.new_field_assignments);
+        RefFinder new_finder = new RefFinder(set.getNewSourceSet(), this.new_field_accesses, this.new_field_assignments,
+                this.new_ext_accesses, this.new_ext_assignments, this.new_method_invokes, this.new_ext_invokes);
         for (TypeEntry type : set.getNewSourceSet().getAllClasses()) {
             type.accept(new_finder);
         }
-        FieldRefFinder old_finder = new FieldRefFinder(set.getOldSourceSet(), this.old_field_accesses, this.old_field_assignments);
+        RefFinder old_finder = new RefFinder(set.getOldSourceSet(), this.old_field_accesses, this.old_field_assignments,
+                this.old_ext_accesses, this.old_ext_assignments, this.old_method_invokes, this.old_ext_invokes);
         for (TypeEntry type : set.getOldSourceSet().getAllClasses()) {
             type.accept(old_finder);
         }
@@ -116,6 +130,24 @@ public class MatchFieldRefs implements MergeOperation {
             prep(set);
         }
 
+        for (String old_ext : this.old_ext_accesses.keySet()) {
+            Collection<MethodEntry> old = this.old_ext_accesses.get(old_ext);
+            Collection<MethodEntry> new_ = this.new_ext_accesses.get(old_ext);
+            matchDiscreteByType(set, old, new_);
+        }
+
+        for (String old_ext : this.old_ext_assignments.keySet()) {
+            Collection<MethodEntry> old = this.old_ext_assignments.get(old_ext);
+            Collection<MethodEntry> new_ = this.new_ext_assignments.get(old_ext);
+            matchDiscreteByType(set, old, new_);
+        }
+
+        for (String old_ext : this.old_ext_invokes.keySet()) {
+            Collection<MethodEntry> old = this.old_ext_invokes.get(old_ext);
+            Collection<MethodEntry> new_ = this.new_ext_invokes.get(old_ext);
+            matchDiscreteByType(set, old, new_);
+        }
+
         for (MatchEntry match : set.getAllMatches()) {
             for (FieldEntry fld : match.getOldType().getFields()) {
                 FieldMatchEntry fld_match = set.getFieldMatch(fld);
@@ -126,7 +158,34 @@ public class MatchFieldRefs implements MergeOperation {
 
                 matchDiscreteByType(set, this.old_field_accesses.get(fld), this.new_field_accesses.get(n));
                 matchDiscreteByType(set, this.old_field_assignments.get(fld), this.new_field_assignments.get(n));
+            }
+            for (FieldEntry fld : match.getOldType().getStaticFields()) {
+                FieldMatchEntry fld_match = set.getFieldMatch(fld);
+                if (fld_match == null) {
+                    continue;
+                }
+                FieldEntry n = fld_match.getNewField();
 
+                matchDiscreteByType(set, this.old_field_accesses.get(fld), this.new_field_accesses.get(n));
+                matchDiscreteByType(set, this.old_field_assignments.get(fld), this.new_field_assignments.get(n));
+            }
+            for (MethodEntry fld : match.getOldType().getMethods()) {
+                MethodMatchEntry fld_match = set.getMethodMatch(fld);
+                if (fld_match == null) {
+                    continue;
+                }
+                MethodEntry n = fld_match.getNewMethod();
+
+                matchDiscreteByType(set, this.old_method_invokes.get(fld), this.new_method_invokes.get(n));
+            }
+            for (MethodEntry fld : match.getOldType().getStaticMethods()) {
+                MethodMatchEntry fld_match = set.getMethodMatch(fld);
+                if (fld_match == null) {
+                    continue;
+                }
+                MethodEntry n = fld_match.getNewMethod();
+
+                matchDiscreteByType(set, this.old_method_invokes.get(fld), this.new_method_invokes.get(n));
             }
         }
     }
@@ -164,17 +223,27 @@ public class MatchFieldRefs implements MergeOperation {
         }
     }
 
-    private static class FieldRefFinder implements InstructionVisitor, StatementVisitor, TypeVisitor {
+    private static class RefFinder implements InstructionVisitor, StatementVisitor, TypeVisitor {
 
         private SourceSet set;
         private MethodEntry current_method;
         private final Multimap<FieldEntry, MethodEntry> field_accesses;
         private final Multimap<FieldEntry, MethodEntry> field_assignments;
+        private final Multimap<String, MethodEntry> ext_accesses;
+        private final Multimap<String, MethodEntry> ext_assignments;
+        private final Multimap<MethodEntry, MethodEntry> method_invokes;
+        private final Multimap<String, MethodEntry> ext_invokes;
 
-        public FieldRefFinder(SourceSet set, Multimap<FieldEntry, MethodEntry> field_accesses, Multimap<FieldEntry, MethodEntry> field_assignments) {
+        public RefFinder(SourceSet set, Multimap<FieldEntry, MethodEntry> field_accesses, Multimap<FieldEntry, MethodEntry> field_assignments,
+                Multimap<String, MethodEntry> ext_accesses, Multimap<String, MethodEntry> ext_assignments,
+                Multimap<MethodEntry, MethodEntry> method_invokes, Multimap<String, MethodEntry> ext_invokes) {
             this.set = set;
             this.field_accesses = field_accesses;
             this.field_assignments = field_assignments;
+            this.ext_accesses = ext_accesses;
+            this.ext_assignments = ext_assignments;
+            this.method_invokes = method_invokes;
+            this.ext_invokes = ext_invokes;
         }
 
         @Override
@@ -184,8 +253,10 @@ public class MatchFieldRefs implements MergeOperation {
                 FieldEntry fld = MergeUtil.findField(owner, stmt.getFieldName());
                 if (fld != null) {
                     this.field_assignments.put(fld, this.current_method);
+                    return;
                 }
             }
+            this.ext_assignments.put(stmt.getOwnerType() + stmt.getOwnerName(), this.current_method);
         }
 
         @Override
@@ -195,8 +266,10 @@ public class MatchFieldRefs implements MergeOperation {
                 FieldEntry fld = MergeUtil.findStaticField(owner, stmt.getFieldName());
                 if (fld != null) {
                     this.field_assignments.put(fld, this.current_method);
+                    return;
                 }
             }
+            this.ext_assignments.put(stmt.getOwnerType() + stmt.getOwnerName(), this.current_method);
         }
 
         @Override
@@ -206,8 +279,10 @@ public class MatchFieldRefs implements MergeOperation {
                 FieldEntry fld = MergeUtil.findField(owner, insn.getFieldName());
                 if (fld != null) {
                     this.field_accesses.put(fld, this.current_method);
+                    return;
                 }
             }
+            this.ext_accesses.put(insn.getOwnerType() + insn.getOwnerName(), this.current_method);
         }
 
         @Override
@@ -217,8 +292,36 @@ public class MatchFieldRefs implements MergeOperation {
                 FieldEntry fld = MergeUtil.findStaticField(owner, insn.getFieldName());
                 if (fld != null) {
                     this.field_accesses.put(fld, this.current_method);
+                    return;
                 }
             }
+            this.ext_accesses.put(insn.getOwnerType() + insn.getOwnerName(), this.current_method);
+        }
+
+        @Override
+        public void visitInstanceMethodInvoke(InstanceMethodInvoke insn) {
+            TypeEntry owner = this.set.get(insn.getOwnerName());
+            if (owner != null) {
+                MethodEntry mth = MergeUtil.findMethod(owner, insn.getMethodName(), insn.getMethodDescription());
+                if (mth != null) {
+                    this.method_invokes.put(mth, this.current_method);
+                    return;
+                }
+            }
+            this.ext_invokes.put(insn.getOwner() + insn.getMethodName() + insn.getMethodDescription(), this.current_method);
+        }
+
+        @Override
+        public void visitStaticMethodInvoke(StaticMethodInvoke insn) {
+            TypeEntry owner = this.set.get(insn.getOwnerName());
+            if (owner != null) {
+                MethodEntry mth = MergeUtil.findStaticMethod(owner, insn.getMethodName(), insn.getMethodDescription());
+                if (mth != null) {
+                    this.method_invokes.put(mth, this.current_method);
+                    return;
+                }
+            }
+            this.ext_invokes.put(insn.getOwner() + insn.getMethodName() + insn.getMethodDescription(), this.current_method);
         }
 
         @Override
@@ -253,10 +356,6 @@ public class MatchFieldRefs implements MergeOperation {
 
         @Override
         public void visitFloatConstant(FloatConstant insn) {
-        }
-
-        @Override
-        public void visitInstanceMethodInvoke(InstanceMethodInvoke insn) {
         }
 
         @Override
@@ -301,10 +400,6 @@ public class MatchFieldRefs implements MergeOperation {
 
         @Override
         public void visitOperator(Operator insn) {
-        }
-
-        @Override
-        public void visitStaticMethodInvoke(StaticMethodInvoke insn) {
         }
 
         @Override

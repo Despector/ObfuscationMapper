@@ -24,6 +24,8 @@
  */
 package org.spongepowered.obfuscation.merge.operation;
 
+import org.spongepowered.despector.ast.type.FieldEntry;
+import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
@@ -34,6 +36,7 @@ import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class VoteCollector implements MergeOperation {
 
@@ -50,6 +53,7 @@ public class VoteCollector implements MergeOperation {
             m.setNewType(m.getHighest());
             set.setAsMatched(m);
             set.incrementChangeCount();
+            cleanup(set, m.getOldType(), m.getNewType());
         }
 
         List<MethodMatchEntry> method_matches = new ArrayList<>(set.getPendingMethodMatches());
@@ -64,9 +68,13 @@ public class VoteCollector implements MergeOperation {
             TypeEntry new_owner = set.getNewSourceSet().get(m.getHighest().getOwnerName());
             MatchEntry owner_match = set.getPendingMatch(old_owner);
             if (owner_match.getNewType() == null) {
+                if (set.isTypeMatched(new_owner)) {
+                    continue;
+                }
                 owner_match.setNewType(new_owner);
                 set.setAsMatched(owner_match);
                 set.incrementChangeCount();
+                cleanup(set, old_owner, new_owner);
             }
             m.setNewMethod(m.getHighest());
             set.setAsMatched(m);
@@ -85,13 +93,80 @@ public class VoteCollector implements MergeOperation {
             TypeEntry new_owner = set.getNewSourceSet().get(m.getHighest().getOwnerName());
             MatchEntry owner_match = set.getPendingMatch(old_owner);
             if (owner_match.getNewType() == null) {
+                if (set.isTypeMatched(new_owner)) {
+                    continue;
+                }
                 owner_match.setNewType(new_owner);
                 set.setAsMatched(owner_match);
                 set.incrementChangeCount();
+                cleanup(set, old_owner, new_owner);
             }
             m.setNewField(m.getHighest());
             set.setAsMatched(m);
             set.incrementChangeCount();
+        }
+    }
+
+    private void cleanup(MergeEngine set, TypeEntry type, TypeEntry new_type) {
+        for (MethodEntry mth : type.getMethods()) {
+            MethodMatchEntry mth_match = set.getPendingMethodMatch(mth);
+            if (mth_match.getNewMethod() == null) {
+                List<MethodEntry> to_remove = new ArrayList<>();
+                for (Map.Entry<MethodEntry, Integer> vote : mth_match.getVotes().entrySet()) {
+                    if (!vote.getKey().getOwnerName().equals(new_type.getName())) {
+                        to_remove.add(vote.getKey());
+                    }
+                }
+                for (MethodEntry m : to_remove) {
+                    mth_match.removeVote(m);
+                }
+            }
+            mth_match.setOwnerMatch(new_type);
+        }
+        for (MethodEntry mth : type.getStaticMethods()) {
+            MethodMatchEntry mth_match = set.getPendingMethodMatch(mth);
+            if (mth_match.getNewMethod() == null) {
+                List<MethodEntry> to_remove = new ArrayList<>();
+                for (Map.Entry<MethodEntry, Integer> vote : mth_match.getVotes().entrySet()) {
+                    if (!vote.getKey().getOwnerName().equals(new_type.getName())) {
+                        to_remove.add(vote.getKey());
+                    }
+                }
+                for (MethodEntry m : to_remove) {
+                    mth_match.removeVote(m);
+                }
+            }
+            mth_match.setOwnerMatch(new_type);
+        }
+        for (FieldEntry fld : type.getFields()) {
+            FieldMatchEntry fld_match = set.getPendingFieldMatch(fld);
+            if (fld_match.getNewField() == null) {
+                List<FieldEntry> to_remove = new ArrayList<>();
+                for (Map.Entry<FieldEntry, Integer> vote : fld_match.getVotes().entrySet()) {
+                    if (!vote.getKey().getOwnerName().equals(new_type.getName())) {
+                        to_remove.add(vote.getKey());
+                    }
+                }
+                for (FieldEntry m : to_remove) {
+                    fld_match.removeVote(m);
+                }
+            }
+            fld_match.setOwnerMatch(new_type);
+        }
+        for (FieldEntry fld : type.getStaticFields()) {
+            FieldMatchEntry fld_match = set.getPendingFieldMatch(fld);
+            if (fld_match.getNewField() == null) {
+                List<FieldEntry> to_remove = new ArrayList<>();
+                for (Map.Entry<FieldEntry, Integer> vote : fld_match.getVotes().entrySet()) {
+                    if (!vote.getKey().getOwnerName().equals(new_type.getName())) {
+                        to_remove.add(vote.getKey());
+                    }
+                }
+                for (FieldEntry m : to_remove) {
+                    fld_match.removeVote(m);
+                }
+            }
+            fld_match.setOwnerMatch(new_type);
         }
     }
 

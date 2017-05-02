@@ -94,7 +94,7 @@ public class CustomMethodMergers implements MergeOperation {
                     continue;
                 }
                 StaticMethodInvoke invoke = (StaticMethodInvoke) val;
-                TypeEntry mth_owner = set.getOldSourceSet().get(invoke.getOwnerType());
+                TypeEntry mth_owner = set.getOldSourceSet().get(invoke.getOwnerName());
                 if (mth_owner != null) {
                     MethodEntry reg = mth_owner.getStaticMethod(invoke.getMethodName(), invoke.getMethodDescription());
                     if (reg != null) {
@@ -126,7 +126,7 @@ public class CustomMethodMergers implements MergeOperation {
                     continue;
                 }
                 StaticMethodInvoke invoke = (StaticMethodInvoke) val;
-                TypeEntry mth_owner = set.getOldSourceSet().get(invoke.getOwnerType());
+                TypeEntry mth_owner = set.getOldSourceSet().get(invoke.getOwnerName());
                 if (mth_owner != null) {
                     MethodEntry reg = mth_owner.getStaticMethod(invoke.getMethodName(), invoke.getMethodDescription());
                     if (reg != null) {

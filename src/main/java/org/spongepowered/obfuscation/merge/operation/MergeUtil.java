@@ -669,10 +669,10 @@ public class MergeUtil {
             return true;
         });
         create(InstanceMethodInvoke.class, (set, a, b) -> {
-            TypeEntry ao = set.getOldSourceSet().get(a.getOwnerType());
-            TypeEntry bo = set.getNewSourceSet().get(b.getOwnerType());
+            TypeEntry ao = set.getOldSourceSet().get(a.getOwnerName());
+            TypeEntry bo = set.getNewSourceSet().get(b.getOwnerName());
             if (ao == null || bo == null) {
-                if (!a.getOwnerType().equals(b.getOwnerType())) {
+                if (!a.getOwnerName().equals(b.getOwnerName())) {
                     return false;
                 }
             } else {
@@ -769,10 +769,10 @@ public class MergeUtil {
             return true;
         });
         create(StaticMethodInvoke.class, (set, a, b) -> {
-            TypeEntry ao = set.getOldSourceSet().get(a.getOwnerType());
-            TypeEntry bo = set.getOldSourceSet().get(b.getOwnerType());
+            TypeEntry ao = set.getOldSourceSet().get(a.getOwnerName());
+            TypeEntry bo = set.getOldSourceSet().get(b.getOwnerName());
             if (ao == null || bo == null) {
-                if (!a.getOwnerType().equals(b.getOwnerType())) {
+                if (!a.getOwnerName().equals(b.getOwnerName())) {
                     return false;
                 }
             } else {

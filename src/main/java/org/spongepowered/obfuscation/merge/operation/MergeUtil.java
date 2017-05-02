@@ -143,8 +143,10 @@ public class MergeUtil {
             }
             TypeEntry old_type = set.getOldSourceSet().get(c.getDescriptor());
             TypeEntry new_type = set.getNewSourceSet().get(cn.getDescriptor());
-            if ((old_type == null || new_type == null) && c.getDescriptor() != cn.getDescriptor()) {
-                return false;
+            if ((old_type == null || new_type == null)) {
+                if (c.getDescriptor() != cn.getDescriptor()) {
+                    return false;
+                }
             } else if (!set.vote(old_type, new_type)) {
                 return false;
             }
@@ -434,7 +436,7 @@ public class MergeUtil {
                     return false;
                 }
                 if (!merge(set, oinsn.getStatement(i), ninsn.getStatement(i))) {
-                    return false;
+                    // return false;
                 }
             }
             return true;
@@ -458,7 +460,7 @@ public class MergeUtil {
                     return false;
                 }
                 if (!merge(set, oinsn.getStatement(i), ninsn.getStatement(i))) {
-                    return false;
+                    // return false;
                 }
             }
             return true;
@@ -476,7 +478,7 @@ public class MergeUtil {
                     return false;
                 }
                 if (!merge(set, oinsn.getStatement(i), ninsn.getStatement(i))) {
-                    return false;
+                    // return false;
                 }
             }
             return true;
@@ -491,10 +493,10 @@ public class MergeUtil {
 
             for (int i = 0; i < oinsn.getStatementCount(); i++) {
                 if (i >= ninsn.getStatementCount()) {
-                    return false;
+                    break;
                 }
                 if (!merge(set, oinsn.getStatement(i), ninsn.getStatement(i))) {
-                    return false;
+                    // return false;
                 }
             }
             if (a.getElifBlocks().size() != b.getElifBlocks().size()) {
@@ -513,10 +515,10 @@ public class MergeUtil {
 
                 for (int j = 0; j < oeinsn.getStatementCount(); j++) {
                     if (j >= neinsn.getStatementCount()) {
-                        return false;
+                        break;
                     }
                     if (!merge(set, oeinsn.getStatement(j), neinsn.getStatement(j))) {
-                        return false;
+                        // return false;
                     }
                 }
             }
@@ -533,7 +535,7 @@ public class MergeUtil {
                         return false;
                     }
                     if (!merge(set, oeinsn.getStatement(j), neinsn.getStatement(j))) {
-                        return false;
+                        // return false;
                     }
                 }
             }
@@ -565,10 +567,10 @@ public class MergeUtil {
 
                 for (int j = 0; j < oinsn.getStatementCount(); j++) {
                     if (j >= ninsn.getStatementCount()) {
-                        return false;
+                        break;
                     }
                     if (!merge(set, oinsn.getStatement(j), ninsn.getStatement(j))) {
-                        return false;
+                        // return false;
                     }
                 }
             }
@@ -584,7 +586,7 @@ public class MergeUtil {
                         return false;
                     }
                     if (!merge(set, oinsn.getStatement(j), ninsn.getStatement(j))) {
-                        return false;
+                        // return false;
                     }
                 }
             }
@@ -625,7 +627,7 @@ public class MergeUtil {
                         return false;
                     }
                     if (!merge(set, oinsn.getStatement(i), ninsn.getStatement(i))) {
-                        return false;
+                        // return false;
                     }
                 }
 
@@ -646,7 +648,7 @@ public class MergeUtil {
                     return false;
                 }
                 if (!merge(set, oinsn.getStatement(i), ninsn.getStatement(i))) {
-                    return false;
+                    // return false;
                 }
             }
             return true;

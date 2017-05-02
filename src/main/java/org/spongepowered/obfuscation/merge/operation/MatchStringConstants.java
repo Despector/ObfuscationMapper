@@ -95,9 +95,15 @@ public class MatchStringConstants implements MergeOperation {
         Map<String, TypeEntry> new_unique = walker.getUniqueStringConstants();
         walker = null;
         for (Map.Entry<String, TypeEntry> e : old_unique.entrySet()) {
+            TypeEntry old = e.getValue();
             TypeEntry n = new_unique.get(e.getKey());
             if (n != null) {
-                set.vote(e.getValue(), n);
+                int old_complexity = old.getFieldCount() + old.getStaticFieldCount() + old.getMethodCount() + old.getStaticMethodCount();
+                int new_complexity = n.getFieldCount() + n.getStaticFieldCount() + n.getMethodCount() + n.getStaticMethodCount();
+                if (new_complexity < old_complexity * 0.1 || old_complexity < new_complexity * 0.1) {
+                    continue;
+                }
+                set.vote(old, n);
             }
         }
     }

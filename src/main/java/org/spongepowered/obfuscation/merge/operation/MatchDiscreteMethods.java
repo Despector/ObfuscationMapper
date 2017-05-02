@@ -30,6 +30,7 @@ import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
 import org.spongepowered.obfuscation.merge.data.MatchEntry;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -39,107 +40,62 @@ public class MatchDiscreteMethods implements MergeOperation {
 
     @Override
     public void operate(MergeEngine set) {
-
         for (MatchEntry type_match : set.getAllMatches()) {
-            {
-                Map<String, MethodEntry> new_discrete = new HashMap<>();
-                Set<String> invalid = new HashSet<>();
-
-                for (MethodEntry mth : type_match.getNewType().getMethods()) {
-                    if (set.isMethodMatched(mth)) {
-                        continue;
-                    }
-                    String key = makeKey(mth.getDescription(), set.getNewMappings());
-                    if (invalid.contains(key)) {
-                        continue;
-                    }
-                    if (new_discrete.containsKey(key)) {
-                        invalid.add(key);
-                        new_discrete.remove(key);
-                    } else {
-                        new_discrete.put(key, mth);
-                    }
-                }
-
-                invalid.clear();
-                Map<String, MethodEntry> old_discrete = new HashMap<>();
-
-                for (MethodEntry mth : type_match.getOldType().getMethods()) {
-                    if (set.isMethodMatched(mth)) {
-                        continue;
-                    }
-                    String key = makeOldKey(mth.getDescription(), set.getOldMappings(), set.getNewMappings());
-                    if (invalid.contains(key)) {
-                        continue;
-                    }
-                    if (old_discrete.containsKey(key)) {
-                        invalid.add(key);
-                        old_discrete.remove(key);
-                    } else {
-                        old_discrete.put(key, mth);
-                    }
-                }
-
-                for (Map.Entry<String, MethodEntry> e : new_discrete.entrySet()) {
-                    MethodEntry old = old_discrete.get(e.getKey());
-                    if (old == null) {
-                        continue;
-                    }
-                    set.vote(old, e.getValue());
-                }
-            }
-            {
-                Map<String, MethodEntry> new_discrete = new HashMap<>();
-                Set<String> invalid = new HashSet<>();
-
-                for (MethodEntry mth : type_match.getNewType().getStaticMethods()) {
-                    if (set.isMethodMatched(mth)) {
-                        continue;
-                    }
-                    String key = makeKey(mth.getDescription(), set.getNewMappings());
-                    if (invalid.contains(key)) {
-                        continue;
-                    }
-                    if (new_discrete.containsKey(key)) {
-                        invalid.add(key);
-                        new_discrete.remove(key);
-                    } else {
-                        new_discrete.put(key, mth);
-                    }
-                }
-
-                invalid.clear();
-                Map<String, MethodEntry> old_discrete = new HashMap<>();
-
-                for (MethodEntry mth : type_match.getOldType().getStaticMethods()) {
-                    if (set.isMethodMatched(mth)) {
-                        continue;
-                    }
-                    String key = makeOldKey(mth.getDescription(), set.getOldMappings(), set.getNewMappings());
-                    if (invalid.contains(key)) {
-                        continue;
-                    }
-                    if (old_discrete.containsKey(key)) {
-                        invalid.add(key);
-                        old_discrete.remove(key);
-                    } else {
-                        old_discrete.put(key, mth);
-                    }
-                }
-
-                for (Map.Entry<String, MethodEntry> e : new_discrete.entrySet()) {
-                    MethodEntry old = old_discrete.get(e.getKey());
-                    if (old == null) {
-                        continue;
-                    }
-                    set.vote(old, e.getValue());
-                }
-            }
-
+            matchDiscrete(set, type_match.getOldType().getMethods(), type_match.getNewType().getMethods());
+            matchDiscrete(set, type_match.getOldType().getStaticMethods(), type_match.getNewType().getStaticMethods());
         }
     }
 
-    private static String mapDesc(String desc, MappingsSet map) {
+    public static void matchDiscrete(MergeEngine set, Collection<MethodEntry> old_methods, Collection<MethodEntry> new_methods) {
+
+        Map<String, MethodEntry> new_discrete = new HashMap<>();
+        Set<String> invalid = new HashSet<>();
+
+        for (MethodEntry mth : new_methods) {
+            if (set.isMethodMatched(mth)) {
+                continue;
+            }
+            String key = makeKey(mth.getDescription(), set.getNewMappings());
+            if (invalid.contains(key)) {
+                continue;
+            }
+            if (new_discrete.containsKey(key)) {
+                invalid.add(key);
+                new_discrete.remove(key);
+            } else {
+                new_discrete.put(key, mth);
+            }
+        }
+
+        invalid.clear();
+        Map<String, MethodEntry> old_discrete = new HashMap<>();
+
+        for (MethodEntry mth : old_methods) {
+            if (set.isMethodMatched(mth)) {
+                continue;
+            }
+            String key = makeOldKey(mth.getDescription(), set.getOldMappings(), set.getNewMappings());
+            if (invalid.contains(key)) {
+                continue;
+            }
+            if (old_discrete.containsKey(key)) {
+                invalid.add(key);
+                old_discrete.remove(key);
+            } else {
+                old_discrete.put(key, mth);
+            }
+        }
+
+        for (Map.Entry<String, MethodEntry> e : new_discrete.entrySet()) {
+            MethodEntry old = old_discrete.get(e.getKey());
+            if (old == null) {
+                continue;
+            }
+            set.vote(old, e.getValue());
+        }
+    }
+
+    public static String mapDesc(String desc, MappingsSet map) {
         if (desc.startsWith("[")) {
             return "[" + mapDesc(desc.substring(1), map);
         }
@@ -154,7 +110,7 @@ public class MatchDiscreteMethods implements MergeOperation {
         return desc;
     }
 
-    private String makeKey(String desc, MappingsSet map) {
+    public static String makeKey(String desc, MappingsSet map) {
         String out = "(";
         for (int i = 1; i < desc.length(); i++) {
             char next = desc.charAt(i);
@@ -199,7 +155,7 @@ public class MatchDiscreteMethods implements MergeOperation {
         return out;
     }
 
-    private static String mapOldDesc(String desc, MappingsSet old_map, MappingsSet new_map) {
+    public static String mapOldDesc(String desc, MappingsSet old_map, MappingsSet new_map) {
         if (desc.startsWith("[")) {
             return "[" + mapOldDesc(desc.substring(1), old_map, new_map);
         }
@@ -214,7 +170,7 @@ public class MatchDiscreteMethods implements MergeOperation {
         return desc;
     }
 
-    private String makeOldKey(String desc, MappingsSet old_map, MappingsSet new_map) {
+    public static String makeOldKey(String desc, MappingsSet old_map, MappingsSet new_map) {
         String out = "(";
         for (int i = 1; i < desc.length(); i++) {
             char next = desc.charAt(i);

@@ -57,7 +57,7 @@ public class CustomMethodMergers implements MergeOperation {
             }
             MethodEntry old = match.getOldMethod();
             MappingsSet old_set = set.getOldMappings();
-            String key = old_set.mapTypeSafe(old.getOwnerName()) + old_set.mapMethodSafe(old.getOwnerName(), old.getName(), old.getDescription())
+            String key = "L" + old_set.mapTypeSafe(old.getOwnerName()) + ";" + old_set.mapMethodSafe(old.getOwnerName(), old.getName(), old.getDescription())
                     + MappingsSet.MethodMapping.mapSig(old.getDescription(), old_set);
             BiConsumer<MethodMatchEntry, MergeEngine> merger = custom_mergers.get(key);
             if (merger != null) {
@@ -66,6 +66,9 @@ public class CustomMethodMergers implements MergeOperation {
             }
         }
 
+    }
+
+    private static void noop(MethodMatchEntry match, MergeEngine set) {
     }
 
     private static void bootstrap_handler(MethodMatchEntry match, MergeEngine set) {
@@ -219,16 +222,19 @@ public class CustomMethodMergers implements MergeOperation {
     }
 
     static {
-        custom_mergers.put("net/minecraft/init/SoundEvents<clinit>()V", CustomMethodMergers::bootstrap_handler);
-        custom_mergers.put("net/minecraft/init/Blocks<clinit>()V", CustomMethodMergers::bootstrap_handler);
-        custom_mergers.put("net/minecraft/init/Items<clinit>()V", CustomMethodMergers::bootstrap_handler);
-        custom_mergers.put("net/minecraft/init/Biomes<clinit>()V", CustomMethodMergers::bootstrap_handler);
-        custom_mergers.put("net/minecraft/init/MobEffects<clinit>()V", CustomMethodMergers::bootstrap_handler);
-        custom_mergers.put("net/minecraft/init/PotionTypes<clinit>()V", CustomMethodMergers::bootstrap_handler);
-        custom_mergers.put("net/minecraft/init/Enchantments<clinit>()V", CustomMethodMergers::bootstrap_handler);
-        custom_mergers.put("net/minecraft/world/storage/loot/LootTableList<clinit>()V", CustomMethodMergers::bootstrap_handler);
+        custom_mergers.put("Lnet/minecraft/init/SoundEvents;<clinit>()V", CustomMethodMergers::bootstrap_handler);
+        custom_mergers.put("Lnet/minecraft/init/Blocks;<clinit>()V", CustomMethodMergers::bootstrap_handler);
+        custom_mergers.put("Lnet/minecraft/init/Items;<clinit>()V", CustomMethodMergers::bootstrap_handler);
+        custom_mergers.put("Lnet/minecraft/init/Biomes;<clinit>()V", CustomMethodMergers::bootstrap_handler);
+        custom_mergers.put("Lnet/minecraft/init/MobEffects;<clinit>()V", CustomMethodMergers::bootstrap_handler);
+        custom_mergers.put("Lnet/minecraft/init/PotionTypes;<clinit>()V", CustomMethodMergers::bootstrap_handler);
+        custom_mergers.put("Lnet/minecraft/init/Enchantments;<clinit>()V", CustomMethodMergers::bootstrap_handler);
+        custom_mergers.put("Lnet/minecraft/world/storage/loot/LootTableList;<clinit>()V", CustomMethodMergers::bootstrap_handler);
 
-        custom_mergers.put("net/minecraft/stats/StatList<clinit>()V", CustomMethodMergers::statlist_handler);
+        custom_mergers.put("Lnet/minecraft/stats/StatList;<clinit>()V", CustomMethodMergers::statlist_handler);
+
+        custom_mergers.put("Lnet/minecraft/util/datafix/DataFixesManager;func_188276_a(Lnet/minecraft/util/datafix/DataFixer;)V", CustomMethodMergers::noop);
+        custom_mergers.put("Lnet/minecraft/util/datafix/DataFixesManager;func_188279_a()Lnet/minecraft/util/datafix/DataFixer;", CustomMethodMergers::noop);
     }
 
 }

@@ -364,7 +364,11 @@ public class MergeUtil {
                 }
                 FieldEntry old_field = findField(old_owner, a.getFieldName());
                 FieldEntry new_field = findField(new_owner, b.getFieldName());
-                if (!set.vote(old_field, new_field)) {
+                if (old_field != null && new_field != null) {
+                    if (!set.vote(old_field, new_field)) {
+                        return false;
+                    }
+                } else if (!a.getFieldName().equals(b.getFieldName())) {
                     return false;
                 }
             }
@@ -401,7 +405,11 @@ public class MergeUtil {
                 }
                 FieldEntry old_field = findStaticField(old_owner, a.getFieldName());
                 FieldEntry new_field = findStaticField(new_owner, b.getFieldName());
-                if (!set.vote(old_field, new_field)) {
+                if (old_field != null && new_field != null) {
+                    if (!set.vote(old_field, new_field)) {
+                        return false;
+                    }
+                } else if (!a.getFieldName().equals(b.getFieldName())) {
                     return false;
                 }
             }
@@ -981,7 +989,11 @@ public class MergeUtil {
             }
             FieldEntry old_field = findField(old_owner, a.getFieldName());
             FieldEntry new_field = findField(new_owner, b.getFieldName());
-            if (!set.vote(old_field, new_field)) {
+            if (old_field != null && new_field != null) {
+                if (!set.vote(old_field, new_field)) {
+                    return false;
+                }
+            } else if (!a.getFieldName().equals(b.getFieldName())) {
                 return false;
             }
             if (!merge(set, a.getFieldOwner(), b.getFieldOwner())) {
@@ -1009,7 +1021,11 @@ public class MergeUtil {
             }
             FieldEntry old_field = findStaticField(old_owner, a.getFieldName());
             FieldEntry new_field = findStaticField(new_owner, b.getFieldName());
-            if (!set.vote(old_field, new_field)) {
+            if (old_field != null && new_field != null) {
+                if (!set.vote(old_field, new_field)) {
+                    return false;
+                }
+            } else if (!a.getFieldName().equals(b.getFieldName())) {
                 return false;
             }
             return true;

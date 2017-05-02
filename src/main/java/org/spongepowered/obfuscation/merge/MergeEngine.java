@@ -182,6 +182,10 @@ public class MergeEngine {
         return m.vote(n);
     }
 
+    public boolean isMethodMatched(MethodEntry n) {
+        return this.matched_methods.contains(n) || this.method_matches.containsKey(n);
+    }
+
     public void setAsMatched(MethodMatchEntry entry) {
         if (entry.getNewMethod() == null) {
             throw new IllegalStateException();

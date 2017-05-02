@@ -41,6 +41,7 @@ import org.spongepowered.obfuscation.merge.operation.CustomMethodMergers;
 import org.spongepowered.obfuscation.merge.operation.MatchDiscreteFields;
 import org.spongepowered.obfuscation.merge.operation.MatchDiscreteMethods;
 import org.spongepowered.obfuscation.merge.operation.MatchEnums;
+import org.spongepowered.obfuscation.merge.operation.MatchInnerClasses;
 import org.spongepowered.obfuscation.merge.operation.MatchMethodGroups;
 import org.spongepowered.obfuscation.merge.operation.MatchReferences;
 import org.spongepowered.obfuscation.merge.operation.MatchStringConstants;
@@ -64,7 +65,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 public class ObfuscationMapper {
 
@@ -213,6 +213,7 @@ public class ObfuscationMapper {
         engine.addOperation(new MatchDiscreteFields());
         engine.addOperation(new MatchMethodGroups());
         engine.addOperation(new MatchDiscreteMethods());
+        engine.addOperation(new MatchInnerClasses());
         engine.addOperation(new MergeMatchedTypes());
         engine.addOperation(new CustomMethodMergers());
         engine.addOperation(new MergeMatchedMethods());
@@ -295,9 +296,6 @@ public class ObfuscationMapper {
                     continue;
                 }
                 String mapped = old_mappings.mapType(obf);
-                if (Pattern.matches("\\$[0-9]+", mapped)) {
-                    continue;
-                }
                 String new_obf = new_mappings.inverseType(mapped);
                 if (new_obf == null) {
                     unmatched_types.add(mapped);

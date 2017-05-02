@@ -33,19 +33,13 @@ public class MatchEnums implements MergeOperation {
     @Override
     public void operate(MergeEngine set) {
         for (EnumEntry n : set.getNewSourceSet().getAllEnums()) {
-            if (n.isAnonType() || n.getEnumConstants().isEmpty()) {
+            if (n.isAnonType() || n.getEnumConstants().isEmpty() || n.getName().contains("$")) {
                 continue;
             }
-            boolean is_inner = n.getName().contains("$");
 
             search: for (EnumEntry m : set.getOldSourceSet().getAllEnums()) {
-                if (m.isAnonType() || m.getEnumConstants().isEmpty()) {
-                    continue;
-                }
-                if (n.getEnumConstants().size() < m.getEnumConstants().size()) {
-                    continue;
-                }
-                if (m.getName().contains("$") ^ is_inner) {
+                if (m.isAnonType() || m.getEnumConstants().isEmpty() || n.getEnumConstants().size() < m.getEnumConstants().size()
+                        || m.getName().contains("$")) {
                     continue;
                 }
                 for (String cst : m.getEnumConstants()) {

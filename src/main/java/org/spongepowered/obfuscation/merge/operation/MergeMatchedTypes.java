@@ -151,6 +151,10 @@ public class MergeMatchedTypes implements MergeOperation {
         private Set<String> non_unique = new HashSet<>();
         private MethodEntry current_method = null;
 
+        public StringConstantMethodWalker() {
+
+        }
+
         public Map<String, MethodEntry> getUnique() {
             return this.unique;
         }

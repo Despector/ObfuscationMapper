@@ -40,6 +40,7 @@ import org.spongepowered.obfuscation.merge.operation.CustomMethodMergers;
 import org.spongepowered.obfuscation.merge.operation.MatchDiscreteFields;
 import org.spongepowered.obfuscation.merge.operation.MatchDiscreteMethods;
 import org.spongepowered.obfuscation.merge.operation.MatchEnums;
+import org.spongepowered.obfuscation.merge.operation.MatchMethodGroups;
 import org.spongepowered.obfuscation.merge.operation.MatchStringConstants;
 import org.spongepowered.obfuscation.merge.operation.MergeInitializers;
 import org.spongepowered.obfuscation.merge.operation.MergeMatchedFields;
@@ -198,6 +199,7 @@ public class ObfuscationMapper {
         engine.addOperation(new MatchEnums());
         engine.addOperation(new MergeInitializers());
         engine.addOperation(new MatchDiscreteFields());
+        engine.addOperation(new MatchMethodGroups());
         engine.addOperation(new MatchDiscreteMethods());
         engine.addOperation(new MergeMatchedTypes());
         engine.addOperation(new CustomMethodMergers());

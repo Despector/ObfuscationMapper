@@ -24,13 +24,17 @@
  */
 package org.spongepowered.obfuscation.merge;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import org.spongepowered.despector.ast.SourceSet;
+import org.spongepowered.despector.ast.type.ClassEntry;
 import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MatchEntry;
+import org.spongepowered.obfuscation.merge.data.MethodGroup;
 import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 
 import java.util.ArrayList;
@@ -60,6 +64,12 @@ public class MergeEngine {
     private final Map<TypeEntry, MatchEntry> pending_matches = new HashMap<>();
     private final Map<MethodEntry, MethodMatchEntry> pending_method_matches = new HashMap<>();
     private final Map<FieldEntry, FieldMatchEntry> pending_field_matches = new HashMap<>();
+
+    private final Map<MethodEntry, MethodGroup> old_method_groups = new HashMap<>();
+    private final Map<MethodEntry, MethodGroup> new_method_groups = new HashMap<>();
+
+    private final Multimap<TypeEntry, TypeEntry> old_subtypes = HashMultimap.create();
+    private final Multimap<TypeEntry, TypeEntry> new_subtypes = HashMultimap.create();
 
     private final SourceSet old_src;
     private final SourceSet new_src;
@@ -155,6 +165,24 @@ public class MergeEngine {
 
     public Collection<MatchEntry> getPendingMatches() {
         return this.pending_matches.values();
+    }
+
+    public MethodGroup getOldMethodGroup(MethodEntry entry) {
+        MethodGroup group = this.old_method_groups.get(entry);
+        if (group == null) {
+            group = new MethodGroup(entry);
+            this.old_method_groups.put(entry, group);
+        }
+        return group;
+    }
+
+    public MethodGroup getNewMethodGroup(MethodEntry entry) {
+        MethodGroup group = this.new_method_groups.get(entry);
+        if (group == null) {
+            group = new MethodGroup(entry);
+            this.new_method_groups.put(entry, group);
+        }
+        return group;
     }
 
     public MethodMatchEntry getMethodMatch(MethodEntry t) {
@@ -268,6 +296,10 @@ public class MergeEngine {
     }
 
     public void merge() {
+
+        generateSubtypes();
+        generateMethodGroups();
+
         for (int i = 0; i < this.operations.size(); i++) {
             MergeOperation op = this.operations.get(i);
             if (op instanceof JumpOperation) {
@@ -300,11 +332,108 @@ public class MergeEngine {
             String owner = entry.getOldMethod().getOwnerName();
             String mapped = this.old_mappings.mapMethod(owner, entry.getOldMethod().getName(), entry.getOldMethod().getDescription());
             if (mapped != null) {
-                String new_owner = entry.getNewMethod().getOwnerName();
-                this.new_mappings.addMethodMapping(new_owner, entry.getNewMethod().getName(), entry.getNewMethod().getDescription(), mapped);
+                MethodEntry mth = entry.getNewMethod();
+                this.new_mappings.addMethodMapping(mth.getOwnerName(), mth.getName(), mth.getDescription(), mapped);
             }
         }
 
+    }
+
+    private void generateSubtypes() {
+        generateSubtypes(this.old_src, this.old_subtypes);
+        generateSubtypes(this.new_src, this.new_subtypes);
+    }
+
+    private void generateSubtypes(SourceSet src, Multimap<TypeEntry, TypeEntry> subtypes) {
+        for (TypeEntry type : src.getAllClasses()) {
+            if (type instanceof ClassEntry) {
+                ClassEntry cls = (ClassEntry) type;
+                TypeEntry spr = src.get(cls.getSuperclassName());
+                if (spr != null) {
+                    subtypes.put(spr, type);
+                }
+            }
+            for (String intr : type.getInterfaces()) {
+                TypeEntry inter = src.get(intr);
+                if (inter != null) {
+                    subtypes.put(inter, type);
+                }
+            }
+        }
+    }
+
+    private void generateMethodGroups() {
+        generateMethodGroups(this.old_src, this.old_method_groups, this.old_subtypes);
+        generateMethodGroups(this.new_src, this.new_method_groups, this.new_subtypes);
+    }
+
+    private void generateMethodGroups(SourceSet src, Map<MethodEntry, MethodGroup> groups, Multimap<TypeEntry, TypeEntry> subtypes) {
+        for (TypeEntry type : src.getAllClasses()) {
+            for (MethodEntry mth : type.getMethods()) {
+                MethodGroup group = groups.get(mth);
+                if (group != null) {
+                    continue;
+                }
+                group = new MethodGroup(mth);
+                if (!mth.getName().equals("<init>") && !mth.getName().equals("<clinit>")) {
+                    findRelatives(type, mth, group, subtypes);
+                }
+                groups.put(mth, group);
+            }
+
+            for (MethodEntry mth : type.getStaticMethods()) {
+                groups.put(mth, new MethodGroup(mth));
+            }
+        }
+    }
+
+    private TypeEntry findHighest(TypeEntry type, MethodEntry mth) {
+        if (type instanceof ClassEntry) {
+            ClassEntry cls = (ClassEntry) type;
+            TypeEntry spr = type.getSource().get(cls.getSuperclassName());
+            if (spr != null) {
+                TypeEntry highest = findHighest(spr, mth);
+                if (highest != null) {
+                    return highest;
+                }
+            }
+        }
+        for (String intr : type.getInterfaces()) {
+            TypeEntry inter = type.getSource().get(intr);
+            if (inter != null) {
+                TypeEntry highest = findHighest(inter, mth);
+                if (highest != null) {
+                    return highest;
+                }
+            }
+        }
+
+        for (MethodEntry m : type.getMethods()) {
+            if (m.getName().equals(mth.getName()) && m.getDescription().equals(mth.getDescription())) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    private void collectAll(TypeEntry type, MethodEntry mth, MethodGroup group, Multimap<TypeEntry, TypeEntry> subtypes) {
+
+        for (MethodEntry m : type.getMethods()) {
+            if (m.getName().equals(mth.getName()) && m.getDescription().equals(mth.getDescription())) {
+                group.addMethod(m);
+            }
+        }
+
+        for (TypeEntry sub : subtypes.get(type)) {
+            collectAll(sub, mth, group, subtypes);
+        }
+
+    }
+
+    private void findRelatives(TypeEntry owner, MethodEntry mth, MethodGroup group, Multimap<TypeEntry, TypeEntry> subtypes) {
+        TypeEntry highest = findHighest(owner, mth);
+
+        collectAll(highest, mth, group, subtypes);
     }
 
     private static class JumpOperation implements MergeOperation {

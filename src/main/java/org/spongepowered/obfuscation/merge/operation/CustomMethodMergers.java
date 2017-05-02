@@ -57,7 +57,7 @@ public class CustomMethodMergers implements MergeOperation {
             }
             MethodEntry old = match.getOldMethod();
             MappingsSet old_set = set.getOldMappings();
-            String key = old_set.mapTypeSafe(old.getOwner()) + old_set.mapMethodSafe(old.getOwner(), old.getName(), old.getDescription())
+            String key = old_set.mapTypeSafe(old.getOwnerName()) + old_set.mapMethodSafe(old.getOwnerName(), old.getName(), old.getDescription())
                     + MappingsSet.MethodMapping.mapSig(old.getDescription(), old_set);
             BiConsumer<MethodMatchEntry, MergeEngine> merger = custom_mergers.get(key);
             if (merger != null) {

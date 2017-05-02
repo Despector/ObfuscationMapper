@@ -231,6 +231,10 @@ public class MergeEngine {
         return m.vote(n);
     }
 
+    public boolean isFieldMatched(FieldEntry n) {
+        return this.matched_fields.contains(n) || this.field_matches.containsKey(n);
+    }
+
     public void setAsMatched(FieldMatchEntry entry) {
         if (entry.getNewField() == null) {
             throw new IllegalStateException();

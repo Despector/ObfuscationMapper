@@ -24,7 +24,7 @@
  */
 package org.spongepowered.obfuscation.merge.operation;
 
-import org.spongepowered.despector.ast.type.MethodEntry;
+import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
@@ -35,21 +35,21 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class MatchDiscreteMethods implements MergeOperation {
+public class MatchDiscreteFields implements MergeOperation {
 
     @Override
     public void operate(MergeEngine set) {
 
         for (MatchEntry type_match : set.getAllMatches()) {
             {
-                Map<String, MethodEntry> new_discrete = new HashMap<>();
+                Map<String, FieldEntry> new_discrete = new HashMap<>();
                 Set<String> invalid = new HashSet<>();
 
-                for (MethodEntry mth : type_match.getNewType().getMethods()) {
-                    if (set.isMethodMatched(mth)) {
+                for (FieldEntry mth : type_match.getNewType().getFields()) {
+                    if (set.isFieldMatched(mth)) {
                         continue;
                     }
-                    String key = makeKey(mth.getDescription(), set.getNewMappings());
+                    String key = mapDesc(mth.getType().getDescriptor(), set.getNewMappings());
                     if (invalid.contains(key)) {
                         continue;
                     }
@@ -62,13 +62,13 @@ public class MatchDiscreteMethods implements MergeOperation {
                 }
 
                 invalid.clear();
-                Map<String, MethodEntry> old_discrete = new HashMap<>();
+                Map<String, FieldEntry> old_discrete = new HashMap<>();
 
-                for (MethodEntry mth : type_match.getOldType().getMethods()) {
-                    if (set.isMethodMatched(mth)) {
+                for (FieldEntry mth : type_match.getOldType().getFields()) {
+                    if (set.isFieldMatched(mth)) {
                         continue;
                     }
-                    String key = makeOldKey(mth.getDescription(), set.getOldMappings(), set.getNewMappings());
+                    String key = mapOldDesc(mth.getType().getDescriptor(), set.getOldMappings(), set.getNewMappings());
                     if (invalid.contains(key)) {
                         continue;
                     }
@@ -80,8 +80,8 @@ public class MatchDiscreteMethods implements MergeOperation {
                     }
                 }
 
-                for (Map.Entry<String, MethodEntry> e : new_discrete.entrySet()) {
-                    MethodEntry old = old_discrete.get(e.getKey());
+                for (Map.Entry<String, FieldEntry> e : new_discrete.entrySet()) {
+                    FieldEntry old = old_discrete.get(e.getKey());
                     if (old == null) {
                         continue;
                     }
@@ -89,14 +89,14 @@ public class MatchDiscreteMethods implements MergeOperation {
                 }
             }
             {
-                Map<String, MethodEntry> new_discrete = new HashMap<>();
+                Map<String, FieldEntry> new_discrete = new HashMap<>();
                 Set<String> invalid = new HashSet<>();
 
-                for (MethodEntry mth : type_match.getNewType().getStaticMethods()) {
-                    if (set.isMethodMatched(mth)) {
+                for (FieldEntry mth : type_match.getNewType().getStaticFields()) {
+                    if (set.isFieldMatched(mth)) {
                         continue;
                     }
-                    String key = makeKey(mth.getDescription(), set.getNewMappings());
+                    String key = mapDesc(mth.getType().getDescriptor(), set.getNewMappings());
                     if (invalid.contains(key)) {
                         continue;
                     }
@@ -109,13 +109,13 @@ public class MatchDiscreteMethods implements MergeOperation {
                 }
 
                 invalid.clear();
-                Map<String, MethodEntry> old_discrete = new HashMap<>();
+                Map<String, FieldEntry> old_discrete = new HashMap<>();
 
-                for (MethodEntry mth : type_match.getOldType().getStaticMethods()) {
-                    if (set.isMethodMatched(mth)) {
+                for (FieldEntry mth : type_match.getOldType().getStaticFields()) {
+                    if (set.isFieldMatched(mth)) {
                         continue;
                     }
-                    String key = makeOldKey(mth.getDescription(), set.getOldMappings(), set.getNewMappings());
+                    String key = mapOldDesc(mth.getType().getDescriptor(), set.getOldMappings(), set.getNewMappings());
                     if (invalid.contains(key)) {
                         continue;
                     }
@@ -127,15 +127,14 @@ public class MatchDiscreteMethods implements MergeOperation {
                     }
                 }
 
-                for (Map.Entry<String, MethodEntry> e : new_discrete.entrySet()) {
-                    MethodEntry old = old_discrete.get(e.getKey());
+                for (Map.Entry<String, FieldEntry> e : new_discrete.entrySet()) {
+                    FieldEntry old = old_discrete.get(e.getKey());
                     if (old == null) {
                         continue;
                     }
                     set.vote(old, e.getValue());
                 }
             }
-
         }
     }
 
@@ -154,51 +153,6 @@ public class MatchDiscreteMethods implements MergeOperation {
         return desc;
     }
 
-    private String makeKey(String desc, MappingsSet map) {
-        String out = "(";
-        for (int i = 1; i < desc.length(); i++) {
-            char next = desc.charAt(i);
-            if (next == ')') {
-                break;
-            }
-            String accu = "";
-            if (next == '[') {
-                accu += next;
-            } else if (next == 'L') {
-                while (next != ';') {
-                    accu += next;
-                    next = desc.charAt(++i);
-                }
-                accu += ';';
-                String m = mapDesc(accu, map);
-                if (m == null) {
-                    out += "*";
-                } else {
-                    out += m;
-                }
-                accu = "";
-            } else {
-                accu += next;
-                String m = mapDesc(accu, map);
-                if (m == null) {
-                    out += "*";
-                } else {
-                    out += m;
-                }
-                accu = "";
-            }
-        }
-        String ret = desc.substring(desc.indexOf(')') + 1);
-        out += ")";
-        String m = mapDesc(ret, map);
-        if (m == null) {
-            out += "*";
-        } else {
-            out += m;
-        }
-        return out;
-    }
-
     private static String mapOldDesc(String desc, MappingsSet old_map, MappingsSet new_map) {
         if (desc.startsWith("[")) {
             return "[" + mapOldDesc(desc.substring(1), old_map, new_map);
@@ -212,51 +166,6 @@ public class MatchDiscreteMethods implements MergeOperation {
             return "L" + m + ";";
         }
         return desc;
-    }
-
-    private String makeOldKey(String desc, MappingsSet old_map, MappingsSet new_map) {
-        String out = "(";
-        for (int i = 1; i < desc.length(); i++) {
-            char next = desc.charAt(i);
-            if (next == ')') {
-                break;
-            }
-            String accu = "";
-            if (next == '[') {
-                accu += next;
-            } else if (next == 'L') {
-                while (next != ';') {
-                    accu += next;
-                    next = desc.charAt(++i);
-                }
-                accu += ';';
-                String m = mapOldDesc(accu, old_map, new_map);
-                if (m == null) {
-                    out += "*";
-                } else {
-                    out += m;
-                }
-                accu = "";
-            } else {
-                accu += next;
-                String m = mapOldDesc(accu, old_map, new_map);
-                if (m == null) {
-                    out += "*";
-                } else {
-                    out += m;
-                }
-                accu = "";
-            }
-        }
-        String ret = desc.substring(desc.indexOf(')') + 1);
-        out += ")";
-        String m = mapOldDesc(ret, old_map, new_map);
-        if (m == null) {
-            out += "*";
-        } else {
-            out += m;
-        }
-        return out;
     }
 
 }

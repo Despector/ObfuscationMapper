@@ -757,7 +757,7 @@ public class MergeUtil {
         });
         create(StaticMethodInvoke.class, (set, a, b) -> {
             TypeEntry ao = set.getOldSourceSet().get(a.getOwnerName());
-            TypeEntry bo = set.getOldSourceSet().get(b.getOwnerName());
+            TypeEntry bo = set.getNewSourceSet().get(b.getOwnerName());
             if (ao == null || bo == null) {
                 if (!a.getOwnerName().equals(b.getOwnerName())) {
                     return false;

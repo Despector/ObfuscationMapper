@@ -323,6 +323,24 @@ public class MergeEngine {
             }
         }
 
+        for (TypeEntry type : this.new_src.getAllClasses()) {
+            if (!type.isAnonType()) {
+                continue;
+            }
+            if (this.new_mappings.mapType(type.getName()) != null) {
+                continue;
+            }
+            String parent = type.getName().substring(0, type.getName().lastIndexOf('$'));
+            String parent_mapped = this.new_mappings.mapTypeSafe(parent);
+            int index = Integer.parseInt(type.getName().substring(type.getName().lastIndexOf('$') + 1, type.getName().length()));
+            String mapped_name = parent_mapped + "$" + index;
+            while (this.new_mappings.inverseType(mapped_name) != null) {
+                index++;
+                mapped_name = parent_mapped + "$" + index;
+            }
+            this.new_mappings.addTypeMapping(type.getName(), mapped_name);
+        }
+
         for (FieldMatchEntry entry : this.field_matches.values()) {
             String owner = entry.getOldField().getOwnerName();
             String mapped = this.old_mappings.mapField(owner, entry.getOldField().getName());

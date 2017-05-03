@@ -46,7 +46,6 @@ import org.spongepowered.despector.util.TypeHelper;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
-import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 
 import java.util.HashMap;

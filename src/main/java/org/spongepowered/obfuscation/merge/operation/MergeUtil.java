@@ -129,10 +129,18 @@ public class MergeUtil {
         if (o instanceof ClassTypeSignature && n instanceof ClassTypeSignature) {
             ClassTypeSignature c = (ClassTypeSignature) o;
             ClassTypeSignature cn = (ClassTypeSignature) n;
-            TypeEntry old_type = set.getOldSourceSet().get(c.getName());
-            TypeEntry new_type = set.getNewSourceSet().get(cn.getName());
+            String cname = c.getDescriptor();
+            while (cname.startsWith("[")) {
+                cname = cname.substring(1);
+            }
+            TypeEntry old_type = set.getOldSourceSet().get(TypeHelper.descToType(cname));
+            String cnname = cn.getDescriptor();
+            while (cnname.startsWith("[")) {
+                cnname = cnname.substring(1);
+            }
+            TypeEntry new_type = set.getNewSourceSet().get(TypeHelper.descToType(cnname));
             if (old_type == null || new_type == null) {
-                return c.getDescriptor() == cn.getDescriptor();
+                return c.getDescriptor().equals(cn.getDescriptor());
             }
             return set.vote(old_type, new_type);
         } else if (o instanceof GenericClassTypeSignature && n instanceof GenericClassTypeSignature) {
@@ -141,10 +149,18 @@ public class MergeUtil {
             if (c.getArguments().size() != cn.getArguments().size()) {
                 return false;
             }
-            TypeEntry old_type = set.getOldSourceSet().get(c.getName());
-            TypeEntry new_type = set.getNewSourceSet().get(cn.getName());
+            String cname = c.getDescriptor();
+            while (cname.startsWith("[")) {
+                cname = cname.substring(1);
+            }
+            TypeEntry old_type = set.getOldSourceSet().get(TypeHelper.descToType(cname));
+            String cnname = cn.getDescriptor();
+            while (cnname.startsWith("[")) {
+                cnname = cnname.substring(1);
+            }
+            TypeEntry new_type = set.getNewSourceSet().get(TypeHelper.descToType(cnname));
             if ((old_type == null || new_type == null)) {
-                if (c.getDescriptor() != cn.getDescriptor()) {
+                if (!c.getDescriptor().equals(cn.getDescriptor())) {
                     return false;
                 }
             } else if (!set.vote(old_type, new_type)) {
@@ -819,7 +835,7 @@ public class MergeUtil {
             if (!merge(set, a.getLocal().getType(), b.getLocal().getType())) {
                 return false;
             }
-            return false;
+            return true;
         });
         create(Return.class, (set, a, b) -> {
             if (!a.getValue().isPresent()) {

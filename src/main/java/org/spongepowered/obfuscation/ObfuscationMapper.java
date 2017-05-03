@@ -321,7 +321,7 @@ public class ObfuscationMapper {
 
         UnknownTypeMapper unknown_type = new UnknownTypeMapper(new_mappings);
         new_sourceset.accept(unknown_type);
-        UnknownMemberMapper unknown = new UnknownMemberMapper(new_mappings);
+        UnknownMemberMapper unknown = new UnknownMemberMapper(new_mappings, engine);
         new_sourceset.accept(unknown);
 
         Path mappings_out = root.resolve(output_mappings);

@@ -32,15 +32,19 @@ import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.InterfaceEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeVisitor;
+import org.spongepowered.obfuscation.merge.MergeEngine;
+import org.spongepowered.obfuscation.merge.data.MethodGroup;
 
 public class UnknownMemberMapper implements TypeVisitor {
 
     private final MappingsSet mappings;
+    private final MergeEngine engine;
 
     private int next_type = 0;
 
-    public UnknownMemberMapper(MappingsSet set) {
+    public UnknownMemberMapper(MappingsSet set, MergeEngine engine) {
         this.mappings = set;
+        this.engine = engine;
     }
 
     @Override
@@ -70,7 +74,19 @@ public class UnknownMemberMapper implements TypeVisitor {
         }
         String mapped = this.mappings.mapMethod(mth.getOwnerName(), mth.getName(), mth.getDescription());
         if (mapped == null) {
-            mapped = String.format("mth_%04d_%s", this.next_type++, mth.getName());
+            MethodGroup group = this.engine.getNewMethodGroup(mth);
+            for (MethodEntry g : group.getMethods()) {
+                mapped = this.mappings.mapMethod(g.getOwnerName(), g.getName(), g.getDescription());
+                if (mapped != null) {
+                    break;
+                }
+            }
+            if (mapped == null) {
+                if (mth.getName().length() > 2) {
+                    return;
+                }
+                mapped = String.format("mth_%04d_%s", this.next_type++, mth.getName());
+            }
             this.mappings.addMethodMapping(mth.getOwnerName(), mth.getName(), mth.getDescription(), mapped);
         }
     }

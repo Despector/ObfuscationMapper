@@ -129,8 +129,8 @@ public class MergeUtil {
         if (o instanceof ClassTypeSignature && n instanceof ClassTypeSignature) {
             ClassTypeSignature c = (ClassTypeSignature) o;
             ClassTypeSignature cn = (ClassTypeSignature) n;
-            TypeEntry old_type = set.getOldSourceSet().get(c.getDescriptor());
-            TypeEntry new_type = set.getNewSourceSet().get(cn.getDescriptor());
+            TypeEntry old_type = set.getOldSourceSet().get(c.getName());
+            TypeEntry new_type = set.getNewSourceSet().get(cn.getName());
             if (old_type == null || new_type == null) {
                 return c.getDescriptor() == cn.getDescriptor();
             }
@@ -141,8 +141,8 @@ public class MergeUtil {
             if (c.getArguments().size() != cn.getArguments().size()) {
                 return false;
             }
-            TypeEntry old_type = set.getOldSourceSet().get(c.getDescriptor());
-            TypeEntry new_type = set.getNewSourceSet().get(cn.getDescriptor());
+            TypeEntry old_type = set.getOldSourceSet().get(c.getName());
+            TypeEntry new_type = set.getNewSourceSet().get(cn.getName());
             if ((old_type == null || new_type == null)) {
                 if (c.getDescriptor() != cn.getDescriptor()) {
                     return false;
@@ -695,8 +695,8 @@ public class MergeUtil {
             List<String> ap = TypeHelper.splitSig(a.getMethodDescription());
             List<String> bp = TypeHelper.splitSig(b.getMethodDescription());
             for (int i = 0; i < ap.size(); i++) {
-                TypeEntry apo = set.getOldSourceSet().get(ap.get(i));
-                TypeEntry bpo = set.getNewSourceSet().get(bp.get(i));
+                TypeEntry apo = set.getOldSourceSet().get(TypeHelper.descToType(ap.get(i)));
+                TypeEntry bpo = set.getNewSourceSet().get(TypeHelper.descToType(bp.get(i)));
                 if (apo == null || bpo == null) {
                     if (!ap.get(i).equals(bp.get(i))) {
                         return false;
@@ -708,8 +708,8 @@ public class MergeUtil {
             {
                 String ar = TypeHelper.getRet(a.getMethodDescription());
                 String br = TypeHelper.getRet(b.getMethodDescription());
-                TypeEntry apo = set.getOldSourceSet().get(ar);
-                TypeEntry bpo = set.getOldSourceSet().get(br);
+                TypeEntry apo = set.getOldSourceSet().get(TypeHelper.descToType(ar));
+                TypeEntry bpo = set.getNewSourceSet().get(TypeHelper.descToType(br));
                 if (apo == null || bpo == null) {
                     if (!ar.equals(br)) {
                         return false;
@@ -738,23 +738,10 @@ public class MergeUtil {
             List<String> ap = TypeHelper.splitSig(a.getCtorDescription());
             List<String> bp = TypeHelper.splitSig(b.getCtorDescription());
             for (int i = 0; i < ap.size(); i++) {
-                TypeEntry apo = set.getOldSourceSet().get(ap.get(i));
-                TypeEntry bpo = set.getNewSourceSet().get(bp.get(i));
+                TypeEntry apo = set.getOldSourceSet().get(TypeHelper.descToType(ap.get(i)));
+                TypeEntry bpo = set.getNewSourceSet().get(TypeHelper.descToType(bp.get(i)));
                 if (apo == null || bpo == null) {
                     if (!ap.get(i).equals(bp.get(i))) {
-                        return false;
-                    }
-                } else if (!set.vote(apo, bpo)) {
-                    return false;
-                }
-            }
-            {
-                String ar = TypeHelper.getRet(a.getCtorDescription());
-                String br = TypeHelper.getRet(b.getCtorDescription());
-                TypeEntry apo = set.getOldSourceSet().get(ar);
-                TypeEntry bpo = set.getNewSourceSet().get(br);
-                if (apo == null || bpo == null) {
-                    if (!ar.equals(br)) {
                         return false;
                     }
                 } else if (!set.vote(apo, bpo)) {
@@ -795,8 +782,8 @@ public class MergeUtil {
             List<String> ap = TypeHelper.splitSig(a.getMethodDescription());
             List<String> bp = TypeHelper.splitSig(b.getMethodDescription());
             for (int i = 0; i < ap.size(); i++) {
-                TypeEntry apo = set.getOldSourceSet().get(ap.get(i));
-                TypeEntry bpo = set.getNewSourceSet().get(bp.get(i));
+                TypeEntry apo = set.getOldSourceSet().get(TypeHelper.descToType(ap.get(i)));
+                TypeEntry bpo = set.getNewSourceSet().get(TypeHelper.descToType(bp.get(i)));
                 if (apo == null || bpo == null) {
                     if (!ap.get(i).equals(bp.get(i))) {
                         return false;
@@ -808,8 +795,8 @@ public class MergeUtil {
             {
                 String ar = TypeHelper.getRet(a.getMethodDescription());
                 String br = TypeHelper.getRet(b.getMethodDescription());
-                TypeEntry apo = set.getOldSourceSet().get(ar);
-                TypeEntry bpo = set.getNewSourceSet().get(br);
+                TypeEntry apo = set.getOldSourceSet().get(TypeHelper.descToType(ar));
+                TypeEntry bpo = set.getNewSourceSet().get(TypeHelper.descToType(br));
                 if (apo == null || bpo == null) {
                     if (!ar.equals(br)) {
                         return false;

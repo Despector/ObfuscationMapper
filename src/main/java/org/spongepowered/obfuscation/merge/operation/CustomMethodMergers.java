@@ -371,6 +371,7 @@ public class CustomMethodMergers implements MergeOperation {
 
         custom_mergers.put("Lnet/minecraft/block/Block;func_149671_p()V", CustomMethodMergers::register_blocks);
         custom_mergers.put("Lnet/minecraft/item/Item;func_150900_l()V", CustomMethodMergers::register_items);
+        custom_mergers.put("Lnet/minecraft/world/biome/Biome;func_185358_q()V", CustomMethodMergers::register_blocks);
     }
 
 }

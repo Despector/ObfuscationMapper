@@ -28,8 +28,10 @@ import org.spongepowered.despector.ast.SourceSet;
 import org.spongepowered.despector.ast.insn.Instruction;
 import org.spongepowered.despector.ast.insn.cst.StringConstant;
 import org.spongepowered.despector.ast.insn.misc.Cast;
+import org.spongepowered.despector.ast.insn.var.LocalAccess;
 import org.spongepowered.despector.ast.stmt.Statement;
 import org.spongepowered.despector.ast.stmt.StatementBlock;
+import org.spongepowered.despector.ast.stmt.assign.LocalAssignment;
 import org.spongepowered.despector.ast.stmt.assign.StaticFieldAssignment;
 import org.spongepowered.despector.ast.stmt.branch.For;
 import org.spongepowered.despector.ast.stmt.invoke.InstanceMethodInvoke;
@@ -302,18 +304,23 @@ public class CustomMethodMergers implements MergeOperation {
     }
 
     private static void findBlockTypes(StatementBlock block, SourceSet src, Map<String, TypeEntry> types) {
+        Instruction last = null;
         for (Statement stmt : block) {
             if (stmt instanceof For) {
                 break;
             }
-            if (stmt instanceof InvokeStatement) {
+            if (stmt instanceof LocalAssignment) {
+                last = ((LocalAssignment) stmt).getValue();
+            } else if (stmt instanceof InvokeStatement) {
                 Instruction inner = ((InvokeStatement) stmt).getInstruction();
                 if (inner instanceof StaticMethodInvoke) {
                     StaticMethodInvoke reg = (StaticMethodInvoke) inner;
                     if (reg.getParameters().length != 3) {
+                        last = null;
                         continue;
                     }
                     if (!reg.getMethodDescription().startsWith("(I")) {
+                        last = null;
                         continue;
                     }
                     Instruction val = reg.getParameters()[2];
@@ -326,6 +333,7 @@ public class CustomMethodMergers implements MergeOperation {
                             InstanceMethodInvoke invoke = (InstanceMethodInvoke) val;
                             if (!invoke.getMethodDescription().startsWith("(Ljava/lang/String;)")
                                     || !(invoke.getParameters()[0] instanceof StringConstant)) {
+                                last = null;
                                 continue;
                             }
                             key = ((StringConstant) invoke.getParameters()[0]).getConstant();
@@ -334,12 +342,17 @@ public class CustomMethodMergers implements MergeOperation {
                         key = ((StringConstant) reg.getParameters()[1]).getConstant();
                     }
                     if (key == null) {
+                        last = null;
                         continue;
+                    }
+                    if (val instanceof LocalAccess && last != null) {
+                        val = last;
                     }
                     while (val instanceof InstanceMethodInvoke) {
                         val = ((InstanceMethodInvoke) val).getCallee();
                     }
                     if (!(val instanceof New)) {
+                        last = null;
                         continue;
                     }
                     String type = TypeHelper.descToType(((New) val).getType().getDescriptor());
@@ -347,6 +360,9 @@ public class CustomMethodMergers implements MergeOperation {
                     if (block_type != null) {
                         types.put(key, block_type);
                     }
+                    last = null;
+                } else {
+                    last = null;
                 }
             }
         }

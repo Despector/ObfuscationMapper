@@ -149,7 +149,7 @@ public class ObfuscationMapper {
         if (validation_mappings != null) {
             Path validation_mappings_path = root.resolve(validation_mappings);
             if (!Files.exists(validation_mappings_path)) {
-                System.err.println("Valdiation mappings " + validation_mappings + " not found");
+                System.err.println("Validation mappings " + validation_mappings + " not found");
             } else {
                 System.out.println("Loading validation mappings");
                 validation = MappingsIO.load(validation_mappings_path);
@@ -269,13 +269,13 @@ public class ObfuscationMapper {
             float type_percent = (new_mappings.typeCount() / (float) usage.getSeenTypes()) * 100.0f;
             System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.typeCount(), usage.getSeenTypes(), type_percent);
             float field_percent = (new_mappings.fieldCount() / (float) usage.getSeenFields()) * 100.0f;
-            System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.fieldCount(), usage.getSeenFields(), field_percent);
+            System.out.printf("Mapped %d/%d fields (%.2f%%)\n", new_mappings.fieldCount(), usage.getSeenFields(), field_percent);
             float method_percent = (new_mappings.methodCount() / (float) usage.getSeenMethods()) * 100.0f;
-            System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.methodCount(), usage.getSeenMethods(), method_percent);
+            System.out.printf("Mapped %d/%d methods (%.2f%%)\n", new_mappings.methodCount(), usage.getSeenMethods(), method_percent);
 
             System.out.println("Type validation errors: " + type_validation_errors);
-            System.out.println("Method validation errors: " + method_validation_errors);
             System.out.println("Field validation errors: " + field_validation_errors);
+            System.out.println("Method validation errors: " + method_validation_errors);
             int total_mapped = new_mappings.typeCount() + new_mappings.fieldCount() + new_mappings.methodCount();
             int error_count = type_validation_errors + method_validation_errors + field_validation_errors;
             System.out.printf("Accuracy: %.2f%%\n", (1 - (error_count / (float) total_mapped)) * 100);
@@ -284,9 +284,9 @@ public class ObfuscationMapper {
             float type_percent = (new_mappings.typeCount() / (float) usage.getSeenTypes()) * 100.0f;
             System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.typeCount(), usage.getSeenTypes(), type_percent);
             float field_percent = (new_mappings.fieldCount() / (float) usage.getSeenFields()) * 100.0f;
-            System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.fieldCount(), usage.getSeenFields(), field_percent);
+            System.out.printf("Mapped %d/%d fields (%.2f%%)\n", new_mappings.fieldCount(), usage.getSeenFields(), field_percent);
             float method_percent = (new_mappings.methodCount() / (float) usage.getSeenMethods()) * 100.0f;
-            System.out.printf("Mapped %d/%d classes (%.2f%%)\n", new_mappings.methodCount(), usage.getSeenMethods(), method_percent);
+            System.out.printf("Mapped %d/%d methods (%.2f%%)\n", new_mappings.methodCount(), usage.getSeenMethods(), method_percent);
         }
 
         if (output_unmatched) {

@@ -368,6 +368,62 @@ public class CustomMethodMergers implements MergeOperation {
         }
     }
 
+    private static void register_enchantments(MethodMatchEntry match, MergeEngine set) {
+        if (match.getOldMethod().getInstructions() == null || match.getNewMethod().getInstructions() == null) {
+            return;
+        }
+        Map<String, TypeEntry> old_types = new HashMap<>();
+        Map<String, TypeEntry> new_types = new HashMap<>();
+        findEnchantments(match.getOldMethod().getInstructions(), set.getOldSourceSet(), old_types);
+        findEnchantments(match.getNewMethod().getInstructions(), set.getNewSourceSet(), new_types);
+        for (Map.Entry<String, TypeEntry> e : new_types.entrySet()) {
+            TypeEntry old = old_types.get(e.getKey());
+            if (old != null) {
+                set.vote(old, e.getValue());
+            }
+        }
+    }
+
+    private static void findEnchantments(StatementBlock block, SourceSet src, Map<String, TypeEntry> types) {
+        for (Statement stmt : block) {
+            if (stmt instanceof InvokeStatement) {
+                Instruction inner = ((InvokeStatement) stmt).getInstruction();
+                if (inner instanceof InstanceMethodInvoke) {
+                    InstanceMethodInvoke reg = (InstanceMethodInvoke) inner;
+                    if (reg.getParameters().length != 3) {
+                        continue;
+                    }
+                    Instruction key_val = reg.getParameters()[1];
+                    String key = null;
+                    if (key_val instanceof New) {
+                        New n = (New) key_val;
+                        if (n.getParameters().length == 1 && n.getParameters()[0] instanceof StringConstant) {
+                            key = ((StringConstant) n.getParameters()[0]).getConstant();
+                        }
+                    }
+                    if (key == null) {
+                        continue;
+                    }
+                    Instruction val = reg.getParameters()[2];
+                    if (val instanceof Cast) {
+                        val = ((Cast) val).getValue();
+                    }
+                    while (val instanceof InstanceMethodInvoke) {
+                        val = ((InstanceMethodInvoke) val).getCallee();
+                    }
+                    if (!(val instanceof New)) {
+                        continue;
+                    }
+                    String type = TypeHelper.descToType(((New) val).getType().getDescriptor());
+                    TypeEntry block_type = src.get(type);
+                    if (block_type != null) {
+                        types.put(key, block_type);
+                    }
+                }
+            }
+        }
+    }
+
     static {
         custom_mergers.put("Lnet/minecraft/init/SoundEvents;<clinit>()V", CustomMethodMergers::bootstrap_handler);
         custom_mergers.put("Lnet/minecraft/init/Blocks;<clinit>()V", CustomMethodMergers::bootstrap_handler);
@@ -388,6 +444,7 @@ public class CustomMethodMergers implements MergeOperation {
         custom_mergers.put("Lnet/minecraft/block/Block;func_149671_p()V", CustomMethodMergers::register_blocks);
         custom_mergers.put("Lnet/minecraft/item/Item;func_150900_l()V", CustomMethodMergers::register_items);
         custom_mergers.put("Lnet/minecraft/world/biome/Biome;func_185358_q()V", CustomMethodMergers::register_blocks);
+        custom_mergers.put("Lnet/minecraft/enchantment/Enchantment;func_185257_f()V", CustomMethodMergers::register_enchantments);
     }
 
 }

@@ -37,6 +37,8 @@ import org.spongepowered.obfuscation.data.MappingUsageFinder;
 import org.spongepowered.obfuscation.data.MappingsIO;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.data.MappingsSet.MethodMapping;
+import org.spongepowered.obfuscation.data.UnknownMemberMapper;
+import org.spongepowered.obfuscation.data.UnknownTypeMapper;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.operation.CustomMethodMergers;
 import org.spongepowered.obfuscation.merge.operation.MatchDiscreteFields;
@@ -315,8 +317,12 @@ public class ObfuscationMapper {
                     writer.println(type);
                 }
             }
-
         }
+
+        UnknownTypeMapper unknown_type = new UnknownTypeMapper(new_mappings);
+        new_sourceset.accept(unknown_type);
+        UnknownMemberMapper unknown = new UnknownMemberMapper(new_mappings);
+        new_sourceset.accept(unknown);
 
         Path mappings_out = root.resolve(output_mappings);
         MappingsIO.write(mappings_out.toAbsolutePath(), new_mappings);

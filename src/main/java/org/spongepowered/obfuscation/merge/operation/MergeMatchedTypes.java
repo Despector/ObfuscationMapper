@@ -90,6 +90,52 @@ public class MergeMatchedTypes implements MergeOperation {
             }
 
             {
+                Map<TypeEntry, Integer> old_interface_complexities = new HashMap<>();
+                for (String inter : old.getInterfaces()) {
+                    TypeEntry intr = set.getOldSourceSet().get(inter);
+                    if (intr == null) {
+                        continue;
+                    }
+                    old_interface_complexities.put(intr, intr.getMethodCount());
+                }
+                Map<TypeEntry, Integer> new_interface_complexities = new HashMap<>();
+                for (String inter : new_.getInterfaces()) {
+                    TypeEntry intr = set.getNewSourceSet().get(inter);
+                    if (intr == null) {
+                        continue;
+                    }
+                    new_interface_complexities.put(intr, intr.getMethodCount());
+                }
+
+                for (TypeEntry old_inter : old_interface_complexities.keySet()) {
+                    if (set.isTypeMatched(old_inter)) {
+                        continue;
+                    }
+                    int cmp = old_interface_complexities.get(old_inter);
+                    TypeEntry inter_match = null;
+                    for (Map.Entry<TypeEntry, Integer> e : new_interface_complexities.entrySet()) {
+                        if (set.isTypeMatched(e.getKey())) {
+                            continue;
+                        }
+                        int delta = Math.abs(cmp - e.getValue());
+                        if (delta <= 2) {
+                            if (inter_match != null) {
+                                inter_match = null;
+                                break;
+                            }
+                            inter_match = e.getKey();
+                        } else if (delta < 6) {
+                            inter_match = null;
+                            break;
+                        }
+                    }
+                    if (inter_match != null) {
+                        set.vote(old_inter, inter_match);
+                    }
+                }
+            }
+
+            {
                 // This is looking for types (particularily functional
                 // interfaces) that only have a single non-synthetic method as
                 // we can safely match those together

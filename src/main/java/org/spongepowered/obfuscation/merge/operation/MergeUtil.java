@@ -522,7 +522,7 @@ public class MergeUtil {
                     }
                 }
             }
-            if (a.getElseBlock() == null ^ a.getElseBlock() == null) {
+            if (a.getElseBlock() == null ^ b.getElseBlock() == null) {
                 return false;
             }
             if (a.getElseBlock() != null) {

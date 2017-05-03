@@ -45,21 +45,30 @@ public class UnknownTypeMapper implements TypeVisitor {
 
     private String mapName(String type) {
         String mapped = this.mappings.mapType(type);
+        String mapped_child = null;
+        if (mapped != null && type.lastIndexOf('$') != -1) {
+            mapped_child = mapped.substring(mapped.lastIndexOf('$') + 1, mapped.length());
+            mapped = null;
+        }
         if (mapped == null) {
             if (type.lastIndexOf('$') != -1) {
                 String parent = type.substring(0, type.lastIndexOf('$'));
                 String child = type.substring(type.lastIndexOf('$') + 1, type.length());
                 String mapped_parent = mapName(parent);
-                try {
-                    int index = Integer.valueOf(child);
-                    mapped = mapped_parent + "$" + index;
-                    while (this.mappings.inverseType(mapped) != null) {
-                        index++;
+                if (mapped_child == null) {
+                    try {
+                        int index = Integer.valueOf(child);
                         mapped = mapped_parent + "$" + index;
+                        while (this.mappings.inverseType(mapped) != null) {
+                            index++;
+                            mapped = mapped_parent + "$" + index;
+                        }
+                    } catch (NumberFormatException e) {
+                        child = String.format("CL_%04d_%s", this.next_type++, child);
+                        mapped = mapped_parent + "$" + child;
                     }
-                } catch (NumberFormatException e) {
-                    child = String.format("CL_%04d_%s", this.next_type++, child);
-                    mapped = mapped_parent + "$" + child;
+                } else {
+                    mapped = mapped_parent + "$" + mapped_child;
                 }
                 this.mappings.addTypeMapping(type, mapped);
                 return mapped;

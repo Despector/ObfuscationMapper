@@ -156,9 +156,8 @@ public class MappingsSet {
      */
     public void addTypeMapping(String obfuscated_type, String mapped_type) {
         String existing = this.classes.get(obfuscated_type);
-        if (existing != null) {
+        if (existing != null && !existing.equals(mapped_type)) {
             System.out.println("Existing class mapping for " + obfuscated_type + " from " + existing + " to " + mapped_type);
-            return;
         }
         this.classes.put(obfuscated_type, mapped_type);
         this.modified = true;

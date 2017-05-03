@@ -29,6 +29,7 @@ import org.spongepowered.despector.ast.insn.Instruction;
 import org.spongepowered.despector.ast.insn.cst.StringConstant;
 import org.spongepowered.despector.ast.insn.misc.Cast;
 import org.spongepowered.despector.ast.insn.var.LocalAccess;
+import org.spongepowered.despector.ast.insn.var.StaticFieldAccess;
 import org.spongepowered.despector.ast.stmt.Statement;
 import org.spongepowered.despector.ast.stmt.StatementBlock;
 import org.spongepowered.despector.ast.stmt.assign.LocalAssignment;
@@ -45,6 +46,7 @@ import org.spongepowered.despector.util.TypeHelper;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
+import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 
 import java.util.HashMap;
@@ -247,6 +249,33 @@ public class CustomMethodMergers implements MergeOperation {
         }
     }
 
+    private static String findBootstrapKey(TypeEntry owner, FieldEntry key) {
+
+        MethodEntry clinit = owner.getStaticMethod("<clinit>");
+
+        for (Statement stmt : clinit.getInstructions()) {
+            if (stmt instanceof StaticFieldAssignment) {
+                StaticFieldAssignment assign = (StaticFieldAssignment) stmt;
+                if (assign.getFieldName().equals(key.getName())) {
+                    Instruction val = assign.getValue();
+                    if (val instanceof Cast) {
+                        val = ((Cast) val).getValue();
+                    }
+                    if (!(val instanceof StaticMethodInvoke)) {
+                        continue;
+                    }
+                    StaticMethodInvoke invoke = (StaticMethodInvoke) val;
+                    if (invoke.getParameters().length != 1 || !(invoke.getParameters()[0] instanceof StringConstant)) {
+                        continue;
+                    }
+                    return ((StringConstant) invoke.getParameters()[0]).getConstant();
+                }
+            }
+        }
+
+        return null;
+    }
+
     private static void findBlockItems(StatementBlock block, SourceSet src, Map<String, TypeEntry> types) {
         for (Statement stmt : block) {
             if (stmt instanceof InvokeStatement) {
@@ -257,6 +286,22 @@ public class CustomMethodMergers implements MergeOperation {
                         continue;
                     }
                     Instruction val = reg.getParameters()[1];
+                    if (val instanceof New) {
+                        Instruction key_insn = reg.getParameters()[0];
+                        if (!(key_insn instanceof StaticFieldAccess)) {
+                            continue;
+                        }
+                        StaticFieldAccess key_acc = (StaticFieldAccess) key_insn;
+                        TypeEntry key_owner = src.get(key_acc.getOwnerName());
+                        FieldEntry key = key_owner.getStaticField(key_acc.getFieldName());
+                        String type = TypeHelper.descToType(((New) val).getType().getDescriptor());
+                        TypeEntry block_type = src.get(type);
+                        if (block_type != null) {
+                            String bkey = findBootstrapKey(key_owner, key);
+                            types.put(bkey, block_type);
+                        }
+                        continue;
+                    }
                     if (val instanceof Cast) {
                         val = ((Cast) val).getValue();
                     }

@@ -90,6 +90,8 @@ import org.spongepowered.obfuscation.merge.data.MatchEntry;
 import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MatchReferences implements MergeOperation {
 
@@ -110,14 +112,29 @@ public class MatchReferences implements MergeOperation {
     private final Multimap<String, MethodEntry> old_ext_invokes = HashMultimap.create();
     private final Multimap<String, MethodEntry> new_ext_invokes = HashMultimap.create();
 
+    private final Multimap<TypeEntry, MethodEntry> old_inits = HashMultimap.create();
+    private final Multimap<TypeEntry, MethodEntry> new_inits = HashMultimap.create();
+    private final Multimap<String, MethodEntry> old_ext_inits = HashMultimap.create();
+    private final Multimap<String, MethodEntry> new_ext_inits = HashMultimap.create();
+
+    private final Multimap<TypeEntry, MethodEntry> old_array_inits = HashMultimap.create();
+    private final Multimap<TypeEntry, MethodEntry> new_array_inits = HashMultimap.create();
+    private final Multimap<String, MethodEntry> old_ext_array_inits = HashMultimap.create();
+    private final Multimap<String, MethodEntry> new_ext_array_inits = HashMultimap.create();
+
+    private final Map<MethodEntry, TypeEntry> old_anons = new HashMap<>();
+    private final Map<MethodEntry, TypeEntry> new_anons = new HashMap<>();
+
     private void prep(MergeEngine set) {
         RefFinder new_finder = new RefFinder(set.getNewSourceSet(), this.new_field_accesses, this.new_field_assignments,
-                this.new_ext_accesses, this.new_ext_assignments, this.new_method_invokes, this.new_ext_invokes);
+                this.new_ext_accesses, this.new_ext_assignments, this.new_method_invokes, this.new_ext_invokes, this.new_inits, this.new_ext_inits,
+                this.new_array_inits, this.new_ext_array_inits, this.new_anons);
         for (TypeEntry type : set.getNewSourceSet().getAllClasses()) {
             type.accept(new_finder);
         }
         RefFinder old_finder = new RefFinder(set.getOldSourceSet(), this.old_field_accesses, this.old_field_assignments,
-                this.old_ext_accesses, this.old_ext_assignments, this.old_method_invokes, this.old_ext_invokes);
+                this.old_ext_accesses, this.old_ext_assignments, this.old_method_invokes, this.old_ext_invokes, this.old_inits, this.old_ext_inits,
+                this.old_array_inits, this.old_ext_array_inits, this.old_anons);
         for (TypeEntry type : set.getOldSourceSet().getAllClasses()) {
             type.accept(old_finder);
         }
@@ -148,7 +165,33 @@ public class MatchReferences implements MergeOperation {
             matchDiscreteByType(set, old, new_);
         }
 
+        for (String old_ext : this.old_ext_inits.keySet()) {
+            Collection<MethodEntry> old = this.old_ext_inits.get(old_ext);
+            Collection<MethodEntry> new_ = this.new_ext_inits.get(old_ext);
+            matchDiscreteByType(set, old, new_);
+        }
+
+        for (String old_ext : this.old_ext_array_inits.keySet()) {
+            Collection<MethodEntry> old = this.old_ext_array_inits.get(old_ext);
+            Collection<MethodEntry> new_ = this.new_ext_array_inits.get(old_ext);
+            matchDiscreteByType(set, old, new_);
+        }
+
         for (MatchEntry match : set.getAllMatches()) {
+            {
+                Collection<MethodEntry> old = this.old_inits.get(match.getOldType());
+                Collection<MethodEntry> new_ = this.new_inits.get(match.getNewType());
+                if (old != null && !old.isEmpty() && new_ != null && !new_.isEmpty()) {
+                    matchDiscreteByType(set, old, new_);
+                }
+            }
+            {
+                Collection<MethodEntry> old = this.old_array_inits.get(match.getOldType());
+                Collection<MethodEntry> new_ = this.new_array_inits.get(match.getNewType());
+                if (old != null && !old.isEmpty() && new_ != null && !new_.isEmpty()) {
+                    matchDiscreteByType(set, old, new_);
+                }
+            }
             for (FieldEntry fld : match.getOldType().getFields()) {
                 FieldMatchEntry fld_match = set.getFieldMatch(fld);
                 if (fld_match == null) {
@@ -176,6 +219,12 @@ public class MatchReferences implements MergeOperation {
                 }
                 MethodEntry n = fld_match.getNewMethod();
 
+                TypeEntry oanon = this.old_anons.get(fld);
+                TypeEntry nanon = this.new_anons.get(n);
+                if (oanon != null && nanon != null) {
+                    set.vote(oanon, nanon);
+                }
+
                 matchDiscreteByType(set, this.old_method_invokes.get(fld), this.new_method_invokes.get(n));
             }
             for (MethodEntry fld : match.getOldType().getStaticMethods()) {
@@ -184,6 +233,12 @@ public class MatchReferences implements MergeOperation {
                     continue;
                 }
                 MethodEntry n = fld_match.getNewMethod();
+
+                TypeEntry oanon = this.old_anons.get(fld);
+                TypeEntry nanon = this.new_anons.get(n);
+                if (oanon != null && nanon != null) {
+                    set.vote(oanon, nanon);
+                }
 
                 matchDiscreteByType(set, this.old_method_invokes.get(fld), this.new_method_invokes.get(n));
             }
@@ -233,10 +288,18 @@ public class MatchReferences implements MergeOperation {
         private final Multimap<String, MethodEntry> ext_assignments;
         private final Multimap<MethodEntry, MethodEntry> method_invokes;
         private final Multimap<String, MethodEntry> ext_invokes;
+        private final Multimap<TypeEntry, MethodEntry> inits;
+        private final Multimap<String, MethodEntry> ext_inits;
+        private final Multimap<TypeEntry, MethodEntry> array_inits;
+        private final Multimap<String, MethodEntry> ext_array_inits;
+        private final Map<MethodEntry, TypeEntry> anons;
+        private boolean store_anons = false;
 
         public RefFinder(SourceSet set, Multimap<FieldEntry, MethodEntry> field_accesses, Multimap<FieldEntry, MethodEntry> field_assignments,
                 Multimap<String, MethodEntry> ext_accesses, Multimap<String, MethodEntry> ext_assignments,
-                Multimap<MethodEntry, MethodEntry> method_invokes, Multimap<String, MethodEntry> ext_invokes) {
+                Multimap<MethodEntry, MethodEntry> method_invokes, Multimap<String, MethodEntry> ext_invokes,
+                Multimap<TypeEntry, MethodEntry> inits, Multimap<String, MethodEntry> ext_inits, Multimap<TypeEntry, MethodEntry> array_inits,
+                Multimap<String, MethodEntry> ext_array_inits, Map<MethodEntry, TypeEntry> anons) {
             this.set = set;
             this.field_accesses = field_accesses;
             this.field_assignments = field_assignments;
@@ -244,6 +307,11 @@ public class MatchReferences implements MergeOperation {
             this.ext_assignments = ext_assignments;
             this.method_invokes = method_invokes;
             this.ext_invokes = ext_invokes;
+            this.inits = inits;
+            this.ext_inits = ext_inits;
+            this.array_inits = array_inits;
+            this.ext_array_inits = ext_array_inits;
+            this.anons = anons;
         }
 
         @Override
@@ -325,8 +393,47 @@ public class MatchReferences implements MergeOperation {
         }
 
         @Override
+        public void visitNewArray(NewArray insn) {
+            TypeEntry array = this.set.get(insn.getType().getName());
+            if (array != null) {
+                this.array_inits.put(array, this.current_method);
+            } else {
+                this.ext_array_inits.put(insn.getType().getName(), this.current_method);
+            }
+        }
+
+        @Override
+        public void visitMultiNewArray(MultiNewArray insn) {
+            TypeEntry array = this.set.get(insn.getType().getName());
+            if (array != null) {
+                this.array_inits.put(array, this.current_method);
+            } else {
+                this.ext_array_inits.put(insn.getType().getName(), this.current_method);
+            }
+        }
+
+        @Override
+        public void visitNew(New insn) {
+            TypeEntry type = this.set.get(insn.getType().getName());
+            if (type != null) {
+                this.inits.put(type, this.current_method);
+                if (type.isAnonType()) {
+                    if (this.store_anons) {
+                        this.store_anons = false;
+                        this.anons.put(this.current_method, type);
+                    } else {
+                        this.anons.remove(this.current_method);
+                    }
+                }
+            } else {
+                this.ext_inits.put(insn.getType().getName(), this.current_method);
+            }
+        }
+
+        @Override
         public void visitMethod(MethodEntry mth) {
             this.current_method = mth;
+            this.store_anons = true;
         }
 
         @Override
@@ -383,14 +490,6 @@ public class MatchReferences implements MergeOperation {
         }
 
         @Override
-        public void visitNew(New insn) {
-        }
-
-        @Override
-        public void visitNewArray(NewArray insn) {
-        }
-
-        @Override
         public void visitNullConstant(NullConstant insn) {
         }
 
@@ -408,10 +507,6 @@ public class MatchReferences implements MergeOperation {
 
         @Override
         public void visitTypeConstant(TypeConstant insn) {
-        }
-
-        @Override
-        public void visitMultiNewArray(MultiNewArray insn) {
         }
 
         @Override

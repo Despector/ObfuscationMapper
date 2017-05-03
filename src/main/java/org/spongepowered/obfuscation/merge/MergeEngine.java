@@ -331,7 +331,10 @@ public class MergeEngine {
                 continue;
             }
             String parent = type.getName().substring(0, type.getName().lastIndexOf('$'));
-            String parent_mapped = this.new_mappings.mapTypeSafe(parent);
+            String parent_mapped = this.new_mappings.mapType(parent);
+            if (parent_mapped == null) {
+                continue;
+            }
             int index = Integer.parseInt(type.getName().substring(type.getName().lastIndexOf('$') + 1, type.getName().length()));
             String mapped_name = parent_mapped + "$" + index;
             while (this.new_mappings.inverseType(mapped_name) != null) {

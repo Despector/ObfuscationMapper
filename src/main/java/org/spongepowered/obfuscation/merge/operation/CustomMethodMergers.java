@@ -227,6 +227,64 @@ public class CustomMethodMergers implements MergeOperation {
         }
     }
 
+    private static void register_items(MethodMatchEntry match, MergeEngine set) {
+        if (match.getOldMethod().getInstructions() == null || match.getNewMethod().getInstructions() == null) {
+            return;
+        }
+        Map<String, TypeEntry> old_types = new HashMap<>();
+        Map<String, TypeEntry> new_types = new HashMap<>();
+        findBlockTypes(match.getOldMethod().getInstructions(), set.getOldSourceSet(), old_types);
+        findBlockItems(match.getOldMethod().getInstructions(), set.getOldSourceSet(), old_types);
+        findBlockTypes(match.getNewMethod().getInstructions(), set.getNewSourceSet(), new_types);
+        findBlockItems(match.getNewMethod().getInstructions(), set.getNewSourceSet(), new_types);
+        for (Map.Entry<String, TypeEntry> e : new_types.entrySet()) {
+            TypeEntry old = old_types.get(e.getKey());
+            if (old != null) {
+                set.vote(old, e.getValue());
+            }
+        }
+    }
+
+    private static void findBlockItems(StatementBlock block, SourceSet src, Map<String, TypeEntry> types) {
+        for (Statement stmt : block) {
+            if (stmt instanceof InvokeStatement) {
+                Instruction inner = ((InvokeStatement) stmt).getInstruction();
+                if (inner instanceof StaticMethodInvoke) {
+                    StaticMethodInvoke reg = (StaticMethodInvoke) inner;
+                    if (reg.getParameters().length != 2) {
+                        continue;
+                    }
+                    Instruction val = reg.getParameters()[1];
+                    if (val instanceof Cast) {
+                        val = ((Cast) val).getValue();
+                    }
+                    String key = null;
+                    if (val instanceof InstanceMethodInvoke) {
+                        InstanceMethodInvoke invoke = (InstanceMethodInvoke) val;
+                        if (!invoke.getMethodDescription().startsWith("(Ljava/lang/String;)")
+                                || !(invoke.getParameters()[0] instanceof StringConstant)) {
+                            continue;
+                        }
+                        key = ((StringConstant) invoke.getParameters()[0]).getConstant();
+                    } else {
+                        continue;
+                    }
+                    while (val instanceof InstanceMethodInvoke) {
+                        val = ((InstanceMethodInvoke) val).getCallee();
+                    }
+                    if (!(val instanceof New)) {
+                        continue;
+                    }
+                    String type = TypeHelper.descToType(((New) val).getType().getDescriptor());
+                    TypeEntry block_type = src.get(type);
+                    if (block_type != null) {
+                        types.put(key, block_type);
+                    }
+                }
+            }
+        }
+    }
+
     private static void register_blocks(MethodMatchEntry match, MergeEngine set) {
         if (match.getOldMethod().getInstructions() == null || match.getNewMethod().getInstructions() == null) {
             return;
@@ -255,7 +313,7 @@ public class CustomMethodMergers implements MergeOperation {
                     if (reg.getParameters().length != 3) {
                         continue;
                     }
-                    if (!reg.getMethodDescription().startsWith("(ILjava/lang/String;")) {
+                    if (!reg.getMethodDescription().startsWith("(I")) {
                         continue;
                     }
                     Instruction val = reg.getParameters()[2];
@@ -312,6 +370,7 @@ public class CustomMethodMergers implements MergeOperation {
                 CustomMethodMergers::noop);
 
         custom_mergers.put("Lnet/minecraft/block/Block;func_149671_p()V", CustomMethodMergers::register_blocks);
+        custom_mergers.put("Lnet/minecraft/item/Item;func_150900_l()V", CustomMethodMergers::register_items);
     }
 
 }

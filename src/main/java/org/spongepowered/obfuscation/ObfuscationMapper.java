@@ -29,6 +29,7 @@ import org.spongepowered.despector.config.LibraryConfiguration;
 import org.spongepowered.despector.decompiler.Decompiler;
 import org.spongepowered.despector.decompiler.Decompilers;
 import org.spongepowered.despector.decompiler.DirectoryWalker;
+import org.spongepowered.despector.util.TypeHelper;
 import org.spongepowered.despector.util.serialization.AstLoader;
 import org.spongepowered.despector.util.serialization.MessagePacker;
 import org.spongepowered.obfuscation.config.ObfConfigManager;
@@ -296,6 +297,9 @@ public class ObfuscationMapper {
                     continue;
                 }
                 String mapped = old_mappings.mapType(obf);
+                if (TypeHelper.isAnonClass(mapped)) {
+                    continue;
+                }
                 String new_obf = new_mappings.inverseType(mapped);
                 if (new_obf == null) {
                     unmatched_types.add(mapped);

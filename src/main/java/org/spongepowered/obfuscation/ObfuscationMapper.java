@@ -52,6 +52,7 @@ import org.spongepowered.obfuscation.merge.operation.MergeInitializers;
 import org.spongepowered.obfuscation.merge.operation.MergeMatchedFields;
 import org.spongepowered.obfuscation.merge.operation.MergeMatchedMethods;
 import org.spongepowered.obfuscation.merge.operation.MergeMatchedTypes;
+import org.spongepowered.obfuscation.merge.operation.MergeSyntheticOverloads;
 import org.spongepowered.obfuscation.merge.operation.VoteCollector;
 
 import java.io.BufferedInputStream;
@@ -209,6 +210,7 @@ public class ObfuscationMapper {
 
         MergeEngine engine = new MergeEngine(old_sourceset, old_mappings, new_sourceset, new_mappings);
 
+        engine.addOperation(new MergeSyntheticOverloads());
         engine.addOperation(new MatchStringConstants());
         engine.addOperation(new MatchEnums());
         engine.addOperation(new MergeInitializers());
@@ -222,7 +224,7 @@ public class ObfuscationMapper {
         engine.addOperation(new MergeMatchedMethods());
         engine.addOperation(new MergeMatchedFields());
         engine.addOperation(new VoteCollector());
-        engine.addOperation(MergeEngine.jumpTo(2, (e) -> {
+        engine.addOperation(MergeEngine.jumpTo(3, (e) -> {
             int ch = e.getChangesLastCycle();
             e.resetChanges();
             return ch > 0;

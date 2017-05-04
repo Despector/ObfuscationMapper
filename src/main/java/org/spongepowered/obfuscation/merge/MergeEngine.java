@@ -27,10 +27,13 @@ package org.spongepowered.obfuscation.merge;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import org.spongepowered.despector.ast.SourceSet;
+import org.spongepowered.despector.ast.generic.ClassTypeSignature;
+import org.spongepowered.despector.ast.generic.MethodSignature;
 import org.spongepowered.despector.ast.type.ClassEntry;
 import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
+import org.spongepowered.despector.util.TypeHelper;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MatchEntry;
@@ -345,20 +348,30 @@ public class MergeEngine {
         }
 
         for (FieldMatchEntry entry : this.field_matches.values()) {
-            String owner = entry.getOldField().getOwnerName();
-            String mapped = this.old_mappings.mapField(owner, entry.getOldField().getName());
-            if (mapped != null) {
-                String new_owner = entry.getNewField().getOwnerName();
-                this.new_mappings.addFieldMapping(new_owner, entry.getNewField().getName(), mapped);
+            if (entry.getOldField() instanceof DummyField) {
+                FieldEntry fld = entry.getNewField();
+                this.new_mappings.addFieldMapping(fld.getOwnerName(), fld.getName(), entry.getOldField().getName());
+            } else {
+                String owner = entry.getOldField().getOwnerName();
+                String mapped = this.old_mappings.mapField(owner, entry.getOldField().getName());
+                if (mapped != null) {
+                    FieldEntry fld = entry.getNewField();
+                    this.new_mappings.addFieldMapping(fld.getOwnerName(), fld.getName(), mapped);
+                }
             }
         }
 
         for (MethodMatchEntry entry : this.method_matches.values()) {
-            String owner = entry.getOldMethod().getOwnerName();
-            String mapped = this.old_mappings.mapMethod(owner, entry.getOldMethod().getName(), entry.getOldMethod().getDescription());
-            if (mapped != null) {
+            if (entry.getOldMethod() instanceof DummyMethod) {
                 MethodEntry mth = entry.getNewMethod();
-                this.new_mappings.addMethodMapping(mth.getOwnerName(), mth.getName(), mth.getDescription(), mapped);
+                this.new_mappings.addMethodMapping(mth.getOwnerName(), mth.getName(), mth.getDescription(), entry.getOldMethod().getName());
+            } else {
+                String owner = entry.getOldMethod().getOwnerName();
+                String mapped = this.old_mappings.mapMethod(owner, entry.getOldMethod().getName(), entry.getOldMethod().getDescription());
+                if (mapped != null) {
+                    MethodEntry mth = entry.getNewMethod();
+                    this.new_mappings.addMethodMapping(mth.getOwnerName(), mth.getName(), mth.getDescription(), mapped);
+                }
             }
         }
 
@@ -461,6 +474,28 @@ public class MergeEngine {
         collectAll(highest, mth, group, subtypes);
     }
 
+    public static FieldEntry createDummyField(SourceSet set, String name, String desc, String owner) {
+        FieldEntry fld = new DummyField(set);
+        fld.setName(name);
+        fld.setType(ClassTypeSignature.of(desc));
+        fld.setOwner(owner);
+        return fld;
+    }
+
+    public static MethodEntry createDummyMethod(SourceSet set, String name, String desc, String owner) {
+        MethodEntry mth = new DummyMethod(set);
+        MethodSignature sig = new MethodSignature(ClassTypeSignature.of(TypeHelper.getRet(desc)));
+        List<String> params = TypeHelper.splitSig(desc);
+        for (String param : params) {
+            sig.getParameters().add(ClassTypeSignature.of(param));
+        }
+        mth.setMethodSignature(sig);
+        mth.setName(name);
+        mth.setDescription(desc);
+        mth.setOwner(owner);
+        return mth;
+    }
+
     private static class JumpOperation implements MergeOperation {
 
         public int target;
@@ -474,6 +509,22 @@ public class MergeEngine {
         @Override
         public void operate(MergeEngine set) {
         }
+    }
+
+    private static class DummyMethod extends MethodEntry {
+
+        public DummyMethod(SourceSet source) {
+            super(source);
+        }
+
+    }
+
+    private static class DummyField extends FieldEntry {
+
+        public DummyField(SourceSet source) {
+            super(source);
+        }
+
     }
 
 }

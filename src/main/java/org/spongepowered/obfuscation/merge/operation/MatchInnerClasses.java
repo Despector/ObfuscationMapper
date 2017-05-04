@@ -80,7 +80,7 @@ public class MatchInnerClasses implements MergeOperation {
             if (match == null) {
                 continue;
             }
-            if (type.getName().contains("$")) {
+            if (type.getName().contains("$") && match.getNewType().getName().contains("$")) {
                 String parent_name = type.getName().substring(0, type.getName().lastIndexOf('$'));
                 TypeEntry parent = set.getOldSourceSet().get(parent_name);
                 MatchEntry parent_match = set.getPendingMatch(parent);

@@ -33,7 +33,9 @@ import org.spongepowered.despector.ast.type.InterfaceEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeVisitor;
 import org.spongepowered.obfuscation.merge.MergeEngine;
+import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MethodGroup;
+import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 
 public class UnknownMemberMapper implements TypeVisitor {
 
@@ -82,6 +84,10 @@ public class UnknownMemberMapper implements TypeVisitor {
                 }
             }
             if (mapped == null) {
+                MethodMatchEntry match = this.engine.getMethodMatchInverse(mth);
+                if (match != null && match.getOldMethod() instanceof MergeEngine.DummyMethod) {
+                    mapped = match.getOldMethod().getName();
+                }
                 if (mth.getName().length() > 2) {
                     return;
                 }
@@ -99,7 +105,12 @@ public class UnknownMemberMapper implements TypeVisitor {
     public void visitField(FieldEntry fld) {
         String mapped = this.mappings.mapField(fld.getOwnerName(), fld.getName());
         if (mapped == null) {
-            mapped = String.format("fld_%04d_%s", this.next_type++, fld.getName());
+            FieldMatchEntry match = this.engine.getFieldMatchInverse(fld);
+            if (match != null && match.getOldField() instanceof MergeEngine.DummyField) {
+                mapped = match.getOldField().getName();
+            } else {
+                mapped = String.format("fld_%04d_%s", this.next_type++, fld.getName());
+            }
             this.mappings.addFieldMapping(fld.getOwnerName(), fld.getName(), mapped);
         }
     }

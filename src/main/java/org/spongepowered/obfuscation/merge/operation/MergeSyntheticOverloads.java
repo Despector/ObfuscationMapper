@@ -25,15 +25,20 @@
 package org.spongepowered.obfuscation.merge.operation;
 
 import org.spongepowered.despector.ast.generic.VoidTypeSignature;
+import org.spongepowered.despector.ast.insn.misc.NewArray;
 import org.spongepowered.despector.ast.stmt.Statement;
 import org.spongepowered.despector.ast.stmt.StatementBlock;
+import org.spongepowered.despector.ast.stmt.assign.StaticFieldAssignment;
 import org.spongepowered.despector.ast.stmt.invoke.InstanceMethodInvoke;
 import org.spongepowered.despector.ast.stmt.invoke.InvokeStatement;
 import org.spongepowered.despector.ast.stmt.misc.Return;
+import org.spongepowered.despector.ast.type.EnumEntry;
+import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.MergeOperation;
+import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 
 public class MergeSyntheticOverloads implements MergeOperation {
@@ -41,6 +46,33 @@ public class MergeSyntheticOverloads implements MergeOperation {
     @Override
     public void operate(MergeEngine set) {
         for (TypeEntry type : set.getNewSourceSet().getAllClasses()) {
+            if (type instanceof EnumEntry) {
+                if (!type.isAnonType()) {
+                    MethodEntry clinit = type.getStaticMethod("<clinit>");
+                    if (clinit != null && clinit.getInstructions() != null) {
+                        for (Statement stmt : clinit.getInstructions()) {
+                            if (stmt instanceof StaticFieldAssignment) {
+                                StaticFieldAssignment assign = (StaticFieldAssignment) stmt;
+                                if (!assign.getOwnerName().equals(type.getName())) {
+                                    continue;
+                                }
+                                if (assign.getValue() instanceof NewArray) {
+                                    FieldEntry fld = type.getStaticField(assign.getFieldName());
+                                    if (fld != null && fld.getType().getDescriptor().startsWith("[")) {
+                                        FieldEntry dummy =
+                                                MergeEngine.createDummyField(set.getOldSourceSet(), "$VALUES", fld.getType(), type.getName());
+                                        FieldMatchEntry match = set.getPendingFieldMatch(dummy);
+                                        match.setNewField(fld);
+                                        set.setAsMatched(match);
+                                        set.incrementChangeCount();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             for (MethodEntry mth : type.getMethods()) {
                 if (!mth.isSynthetic() || mth.getInstructions() == null || mth.getName().length() <= 2) {
                     continue;

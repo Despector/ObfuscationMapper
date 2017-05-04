@@ -29,6 +29,7 @@ import com.google.common.collect.Multimap;
 import org.spongepowered.despector.ast.SourceSet;
 import org.spongepowered.despector.ast.generic.ClassTypeSignature;
 import org.spongepowered.despector.ast.generic.MethodSignature;
+import org.spongepowered.despector.ast.generic.TypeSignature;
 import org.spongepowered.despector.ast.type.ClassEntry;
 import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
@@ -43,10 +44,8 @@ import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Predicate;
 
 public class MergeEngine {
@@ -58,11 +57,11 @@ public class MergeEngine {
     private List<MergeOperation> operations = new ArrayList<>();
 
     private final Map<TypeEntry, MatchEntry> matches = new HashMap<>();
-    private final Set<TypeEntry> matched_types = new HashSet<>();
+    private final Map<TypeEntry, MatchEntry> matches_inverse = new HashMap<>();
     private final Map<MethodEntry, MethodMatchEntry> method_matches = new HashMap<>();
-    private final Set<MethodEntry> matched_methods = new HashSet<>();
+    private final Map<MethodEntry, MethodMatchEntry> method_matches_inverse = new HashMap<>();
     private final Map<FieldEntry, FieldMatchEntry> field_matches = new HashMap<>();
-    private final Set<FieldEntry> matched_fields = new HashSet<>();
+    private final Map<FieldEntry, FieldMatchEntry> field_matches_inverse = new HashMap<>();
 
     private final Map<TypeEntry, MatchEntry> pending_matches = new HashMap<>();
     private final Map<MethodEntry, MethodMatchEntry> pending_method_matches = new HashMap<>();
@@ -129,6 +128,10 @@ public class MergeEngine {
         return this.matches.get(t);
     }
 
+    public MatchEntry getMatchInverse(TypeEntry t) {
+        return this.matches_inverse.get(t);
+    }
+
     public MatchEntry getPendingMatch(TypeEntry t) {
         MatchEntry m = getMatch(t);
         if (m != null) {
@@ -144,14 +147,14 @@ public class MergeEngine {
 
     public boolean vote(TypeEntry old, TypeEntry n) {
         MatchEntry m = getPendingMatch(old);
-        if (this.matched_types.contains(n)) {
+        if (this.matches_inverse.containsKey(n)) {
             return m.getNewType() == n;
         }
         return m.vote(n);
     }
 
     public boolean isTypeMatched(TypeEntry n) {
-        return this.matched_types.contains(n) || this.matches.containsKey(n);
+        return this.matches_inverse.containsKey(n) || this.matches.containsKey(n);
     }
 
     public void setAsMatched(MatchEntry entry) {
@@ -160,7 +163,7 @@ public class MergeEngine {
         }
         this.pending_matches.remove(entry.getOldType());
         this.matches.put(entry.getOldType(), entry);
-        this.matched_types.add(entry.getNewType());
+        this.matches_inverse.put(entry.getNewType(), entry);
         for (MatchEntry match : this.pending_matches.values()) {
             match.removeVote(entry.getNewType());
         }
@@ -196,6 +199,10 @@ public class MergeEngine {
         return this.method_matches.get(t);
     }
 
+    public MethodMatchEntry getMethodMatchInverse(MethodEntry t) {
+        return this.method_matches_inverse.get(t);
+    }
+
     public MethodMatchEntry getPendingMethodMatch(MethodEntry t) {
         MethodMatchEntry m = getMethodMatch(t);
         if (m != null) {
@@ -211,14 +218,14 @@ public class MergeEngine {
 
     public boolean vote(MethodEntry old, MethodEntry n) {
         MethodMatchEntry m = getPendingMethodMatch(old);
-        if (this.matched_methods.contains(n)) {
+        if (this.method_matches_inverse.containsKey(n)) {
             return m.getNewMethod() == n;
         }
         return m.vote(n);
     }
 
     public boolean isMethodMatched(MethodEntry n) {
-        return this.matched_methods.contains(n) || this.method_matches.containsKey(n);
+        return this.method_matches_inverse.containsKey(n) || this.method_matches.containsKey(n);
     }
 
     public void setAsMatched(MethodMatchEntry entry) {
@@ -227,7 +234,7 @@ public class MergeEngine {
         }
         this.pending_method_matches.remove(entry.getOldMethod());
         this.method_matches.put(entry.getOldMethod(), entry);
-        this.matched_methods.add(entry.getNewMethod());
+        this.method_matches_inverse.put(entry.getNewMethod(), entry);
         for (MethodMatchEntry match : this.pending_method_matches.values()) {
             match.removeVote(entry.getNewMethod());
         }
@@ -245,6 +252,10 @@ public class MergeEngine {
         return this.field_matches.get(t);
     }
 
+    public FieldMatchEntry getFieldMatchInverse(FieldEntry t) {
+        return this.field_matches_inverse.get(t);
+    }
+
     public FieldMatchEntry getPendingFieldMatch(FieldEntry t) {
         FieldMatchEntry m = getFieldMatch(t);
         if (m != null) {
@@ -260,14 +271,14 @@ public class MergeEngine {
 
     public boolean vote(FieldEntry old, FieldEntry n) {
         FieldMatchEntry m = getPendingFieldMatch(old);
-        if (this.matched_fields.contains(n)) {
+        if (this.field_matches_inverse.containsKey(n)) {
             return m.getNewField() == n;
         }
         return m.vote(n);
     }
 
     public boolean isFieldMatched(FieldEntry n) {
-        return this.matched_fields.contains(n) || this.field_matches.containsKey(n);
+        return this.field_matches_inverse.containsKey(n) || this.field_matches.containsKey(n);
     }
 
     public void setAsMatched(FieldMatchEntry entry) {
@@ -276,7 +287,7 @@ public class MergeEngine {
         }
         this.pending_field_matches.remove(entry.getOldField());
         this.field_matches.put(entry.getOldField(), entry);
-        this.matched_fields.add(entry.getNewField());
+        this.field_matches_inverse.put(entry.getNewField(), entry);
         for (FieldMatchEntry match : this.pending_field_matches.values()) {
             match.removeVote(entry.getNewField());
         }
@@ -350,6 +361,9 @@ public class MergeEngine {
         for (FieldMatchEntry entry : this.field_matches.values()) {
             if (entry.getOldField() instanceof DummyField) {
                 FieldEntry fld = entry.getNewField();
+                if (this.new_mappings.mapType(fld.getOwnerName()) == null) {
+                    continue;
+                }
                 this.new_mappings.addFieldMapping(fld.getOwnerName(), fld.getName(), entry.getOldField().getName());
             } else {
                 String owner = entry.getOldField().getOwnerName();
@@ -364,6 +378,9 @@ public class MergeEngine {
         for (MethodMatchEntry entry : this.method_matches.values()) {
             if (entry.getOldMethod() instanceof DummyMethod) {
                 MethodEntry mth = entry.getNewMethod();
+                if (this.new_mappings.mapType(mth.getOwnerName()) == null) {
+                    continue;
+                }
                 this.new_mappings.addMethodMapping(mth.getOwnerName(), mth.getName(), mth.getDescription(), entry.getOldMethod().getName());
             } else {
                 String owner = entry.getOldMethod().getOwnerName();
@@ -474,10 +491,10 @@ public class MergeEngine {
         collectAll(highest, mth, group, subtypes);
     }
 
-    public static FieldEntry createDummyField(SourceSet set, String name, String desc, String owner) {
+    public static FieldEntry createDummyField(SourceSet set, String name, TypeSignature desc, String owner) {
         FieldEntry fld = new DummyField(set);
         fld.setName(name);
-        fld.setType(ClassTypeSignature.of(desc));
+        fld.setType(desc);
         fld.setOwner(owner);
         return fld;
     }
@@ -511,7 +528,7 @@ public class MergeEngine {
         }
     }
 
-    private static class DummyMethod extends MethodEntry {
+    public static class DummyMethod extends MethodEntry {
 
         public DummyMethod(SourceSet source) {
             super(source);
@@ -519,7 +536,7 @@ public class MergeEngine {
 
     }
 
-    private static class DummyField extends FieldEntry {
+    public static class DummyField extends FieldEntry {
 
         public DummyField(SourceSet source) {
             super(source);

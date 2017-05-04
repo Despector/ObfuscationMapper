@@ -28,8 +28,12 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import org.spongepowered.despector.ast.SourceSet;
 import org.spongepowered.despector.ast.generic.ClassTypeSignature;
+import org.spongepowered.despector.ast.generic.GenericClassTypeSignature;
 import org.spongepowered.despector.ast.generic.MethodSignature;
+import org.spongepowered.despector.ast.generic.TypeArgument;
+import org.spongepowered.despector.ast.generic.TypeParameter;
 import org.spongepowered.despector.ast.generic.TypeSignature;
+import org.spongepowered.despector.ast.generic.TypeVariableSignature;
 import org.spongepowered.despector.ast.type.ClassEntry;
 import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
@@ -40,9 +44,11 @@ import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MatchEntry;
 import org.spongepowered.obfuscation.merge.data.MethodGroup;
 import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
+import org.spongepowered.obfuscation.util.MethodGroupBuilder;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -418,77 +424,10 @@ public class MergeEngine {
     }
 
     private void generateMethodGroups() {
-        generateMethodGroups(this.old_src, this.old_method_groups, this.old_subtypes);
-        generateMethodGroups(this.new_src, this.new_method_groups, this.new_subtypes);
-    }
-
-    private void generateMethodGroups(SourceSet src, Map<MethodEntry, MethodGroup> groups, Multimap<TypeEntry, TypeEntry> subtypes) {
-        for (TypeEntry type : src.getAllClasses()) {
-            for (MethodEntry mth : type.getMethods()) {
-                MethodGroup group = groups.get(mth);
-                if (group != null) {
-                    continue;
-                }
-                group = new MethodGroup(mth);
-                if (!mth.getName().equals("<init>") && !mth.getName().equals("<clinit>")) {
-                    findRelatives(type, mth, group, subtypes);
-                }
-                groups.put(mth, group);
-            }
-
-            for (MethodEntry mth : type.getStaticMethods()) {
-                groups.put(mth, new MethodGroup(mth));
-            }
-        }
-    }
-
-    private TypeEntry findHighest(TypeEntry type, MethodEntry mth) {
-        if (type instanceof ClassEntry) {
-            ClassEntry cls = (ClassEntry) type;
-            TypeEntry spr = type.getSource().get(cls.getSuperclassName());
-            if (spr != null) {
-                TypeEntry highest = findHighest(spr, mth);
-                if (highest != null) {
-                    return highest;
-                }
-            }
-        }
-        for (String intr : type.getInterfaces()) {
-            TypeEntry inter = type.getSource().get(intr);
-            if (inter != null) {
-                TypeEntry highest = findHighest(inter, mth);
-                if (highest != null) {
-                    return highest;
-                }
-            }
-        }
-
-        for (MethodEntry m : type.getMethods()) {
-            if (m.getName().equals(mth.getName()) && m.getDescription().equals(mth.getDescription())) {
-                return type;
-            }
-        }
-        return null;
-    }
-
-    private void collectAll(TypeEntry type, MethodEntry mth, MethodGroup group, Multimap<TypeEntry, TypeEntry> subtypes) {
-
-        for (MethodEntry m : type.getMethods()) {
-            if (m.getName().equals(mth.getName()) && m.getDescription().equals(mth.getDescription())) {
-                group.addMethod(m);
-            }
-        }
-
-        for (TypeEntry sub : subtypes.get(type)) {
-            collectAll(sub, mth, group, subtypes);
-        }
-
-    }
-
-    private void findRelatives(TypeEntry owner, MethodEntry mth, MethodGroup group, Multimap<TypeEntry, TypeEntry> subtypes) {
-        TypeEntry highest = findHighest(owner, mth);
-
-        collectAll(highest, mth, group, subtypes);
+        MethodGroupBuilder old_builder = new MethodGroupBuilder(this.old_src, this.old_method_groups, this.old_subtypes);
+        old_builder.build();
+        MethodGroupBuilder new_builder = new MethodGroupBuilder(this.new_src, this.new_method_groups, this.new_subtypes);
+        new_builder.build();
     }
 
     public static FieldEntry createDummyField(SourceSet set, String name, TypeSignature desc, String owner) {

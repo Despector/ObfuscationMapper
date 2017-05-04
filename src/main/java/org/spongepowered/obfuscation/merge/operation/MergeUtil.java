@@ -840,6 +840,8 @@ public class MergeUtil {
         create(Return.class, (set, a, b) -> {
             if (!a.getValue().isPresent()) {
                 return !b.getValue().isPresent();
+            } else if (!b.getValue().isPresent()) {
+                return false;
             }
             return merge(set, a.getValue().get(), b.getValue().get());
         });

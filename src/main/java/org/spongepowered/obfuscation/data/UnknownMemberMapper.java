@@ -25,22 +25,34 @@
 package org.spongepowered.obfuscation.data;
 
 import org.spongepowered.despector.ast.Annotation;
+import org.spongepowered.despector.ast.generic.VoidTypeSignature;
+import org.spongepowered.despector.ast.stmt.Statement;
+import org.spongepowered.despector.ast.stmt.StatementBlock;
+import org.spongepowered.despector.ast.stmt.invoke.InstanceMethodInvoke;
+import org.spongepowered.despector.ast.stmt.invoke.InvokeStatement;
+import org.spongepowered.despector.ast.stmt.misc.Return;
 import org.spongepowered.despector.ast.type.AnnotationEntry;
 import org.spongepowered.despector.ast.type.ClassEntry;
 import org.spongepowered.despector.ast.type.EnumEntry;
 import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.InterfaceEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
+import org.spongepowered.despector.ast.type.TypeEntry;
 import org.spongepowered.despector.ast.type.TypeVisitor;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MethodGroup;
 import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class UnknownMemberMapper implements TypeVisitor {
 
     private final MappingsSet mappings;
     private final MergeEngine engine;
+
+    private final Map<MethodEntry, MethodEntry> synthetic_overloads = new HashMap<>();
 
     private int next_type = 0;
 
@@ -49,24 +61,96 @@ public class UnknownMemberMapper implements TypeVisitor {
         this.engine = engine;
     }
 
+    private void findSyntheticOverloads(TypeEntry type) {
+        for (MethodEntry mth : type.getMethods()) {
+            if (!mth.isSynthetic() || mth.getInstructions() == null) {
+                continue;
+            }
+            StatementBlock insns = mth.getInstructions();
+            MethodEntry target = null;
+            if (mth.getReturnType() == VoidTypeSignature.VOID) {
+                if (insns.getStatementCount() != 2) {
+                    continue;
+                }
+                Statement a = insns.getStatement(0);
+                if (!(a instanceof InvokeStatement) || !(((InvokeStatement) a).getInstruction() instanceof InstanceMethodInvoke)) {
+                    continue;
+                }
+                InstanceMethodInvoke invoke = (InstanceMethodInvoke) ((InvokeStatement) a).getInstruction();
+                if (!invoke.getOwnerName().equals(type.getName())) {
+                    continue;
+                }
+                target = type.getMethod(invoke.getMethodName(), invoke.getMethodDescription());
+            } else {
+                if (insns.getStatementCount() != 1) {
+                    continue;
+                }
+                Statement a = insns.getStatement(0);
+                if (!(a instanceof Return) || !(((Return) a).getValue().get() instanceof InstanceMethodInvoke)) {
+                    continue;
+                }
+                InstanceMethodInvoke invoke = (InstanceMethodInvoke) ((Return) a).getValue().get();
+                if (!invoke.getOwnerName().equals(type.getName())) {
+                    continue;
+                }
+                target = type.getMethod(invoke.getMethodName(), invoke.getMethodDescription());
+            }
+            if (target == null) {
+                continue;
+            }
+            this.synthetic_overloads.put(target, mth);
+        }
+    }
+
     @Override
     public void visitClassEntry(ClassEntry type) {
+        findSyntheticOverloads(type);
     }
 
     @Override
     public void visitEnumEntry(EnumEntry type) {
+        findSyntheticOverloads(type);
     }
 
     @Override
     public void visitInterfaceEntry(InterfaceEntry type) {
+        findSyntheticOverloads(type);
     }
 
     @Override
     public void visitAnnotationEntry(AnnotationEntry type) {
+        findSyntheticOverloads(type);
     }
 
     @Override
     public void visitAnnotation(Annotation annotation) {
+    }
+
+    private String getMapped(MethodEntry mth) {
+        String mapped = this.mappings.mapMethod(mth.getOwnerName(), mth.getName(), mth.getDescription());
+        if (mapped != null) {
+            return mapped;
+        }
+        MethodGroup group = this.engine.getNewMethodGroup(mth);
+        for (MethodEntry g : group.getMethods()) {
+            mapped = this.mappings.mapMethod(g.getOwnerName(), g.getName(), g.getDescription());
+            if (mapped != null) {
+                return mapped;
+            }
+        }
+        MethodMatchEntry match = this.engine.getMethodMatchInverse(mth);
+        if (match != null && match.getOldMethod() instanceof MergeEngine.DummyMethod) {
+            return match.getOldMethod().getName();
+        }
+        MethodEntry intr = this.synthetic_overloads.get(mth);
+        if (intr != null) {
+            return getMapped(intr);
+        }
+        if (mth.getName().length() > 2) {
+            return null;
+        }
+        mapped = String.format("mth_%04d_%s", this.next_type++, mth.getName());
+        return mapped;
     }
 
     @Override
@@ -74,25 +158,8 @@ public class UnknownMemberMapper implements TypeVisitor {
         if (mth.getName().equals("<init>") || mth.getName().equals("<clinit>")) {
             return;
         }
-        String mapped = this.mappings.mapMethod(mth.getOwnerName(), mth.getName(), mth.getDescription());
-        if (mapped == null) {
-            MethodGroup group = this.engine.getNewMethodGroup(mth);
-            for (MethodEntry g : group.getMethods()) {
-                mapped = this.mappings.mapMethod(g.getOwnerName(), g.getName(), g.getDescription());
-                if (mapped != null) {
-                    break;
-                }
-            }
-            if (mapped == null) {
-                MethodMatchEntry match = this.engine.getMethodMatchInverse(mth);
-                if (match != null && match.getOldMethod() instanceof MergeEngine.DummyMethod) {
-                    mapped = match.getOldMethod().getName();
-                }
-                if (mth.getName().length() > 2) {
-                    return;
-                }
-                mapped = String.format("mth_%04d_%s", this.next_type++, mth.getName());
-            }
+        String mapped = getMapped(mth);
+        if (mapped != null) {
             this.mappings.addMethodMapping(mth.getOwnerName(), mth.getName(), mth.getDescription(), mapped);
         }
     }

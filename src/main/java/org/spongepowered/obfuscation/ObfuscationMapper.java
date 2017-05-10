@@ -26,7 +26,7 @@ package org.spongepowered.obfuscation;
 
 import org.spongepowered.despector.ast.SourceSet;
 import org.spongepowered.despector.config.LibraryConfiguration;
-import org.spongepowered.despector.decompiler.Decompiler;
+import org.spongepowered.despector.decompiler.BaseDecompiler;
 import org.spongepowered.despector.decompiler.Decompilers;
 import org.spongepowered.despector.decompiler.DirectoryWalker;
 import org.spongepowered.despector.util.TypeHelper;
@@ -105,6 +105,7 @@ public class ObfuscationMapper {
         }
 
         LibraryConfiguration.quiet = true;
+        LibraryConfiguration.parallel = false;
 
         String old_jar = null;
         String old_mappings_dir = null;
@@ -176,7 +177,7 @@ public class ObfuscationMapper {
         SourceSet old_sourceset = new SourceSet();
         SourceSet new_sourceset = new SourceSet();
 
-        Decompiler decompiler = Decompilers.JAVA;
+        BaseDecompiler decompiler = Decompilers.JAVA;
 
         Path old_serialized = root.resolve(old_jar.replace('/', '_').replace('\\', '_') + ".ast");
         if (is_cached && Files.exists(old_serialized)) {
@@ -190,6 +191,7 @@ public class ObfuscationMapper {
             Path old_jar_path = root.resolve(old_jar);
             DirectoryWalker walker = new DirectoryWalker(old_jar_path);
             walker.walk(old_sourceset, decompiler);
+            decompiler.flushTasks();
             long end = System.nanoTime();
             System.out.println("Loaded and decompiled " + old_sourceset.getAllClasses().size() + " classes from the older version");
             System.out.println("Loaded in " + ((end - start) / 1000000) + "ms");
@@ -211,10 +213,10 @@ public class ObfuscationMapper {
             Path new_jar_path = root.resolve(new_jar);
             DirectoryWalker walker = new DirectoryWalker(new_jar_path);
             walker.walk(new_sourceset, decompiler);
+            decompiler.flushTasks();
             long end = System.nanoTime();
             System.out.println("Loaded and decompiled " + new_sourceset.getAllClasses().size() + " classes from the newer version");
             System.out.println("Loaded in " + ((end - start) / 1000000) + "ms");
-
             if (is_cached) {
                 try (MessagePacker packer = new MessagePacker(new FileOutputStream(new_serialized.toFile()))) {
                     new_sourceset.writeTo(packer);
@@ -335,7 +337,7 @@ public class ObfuscationMapper {
             }
         }
 
-        UnknownTypeMapper unknown_type = new UnknownTypeMapper(new_mappings);
+        UnknownTypeMapper unknown_type = new UnknownTypeMapper(engine, new_mappings);
         new_sourceset.accept(unknown_type);
         UnknownMemberMapper unknown = new UnknownMemberMapper(new_mappings, engine);
         new_sourceset.accept(unknown);

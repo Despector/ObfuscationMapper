@@ -76,6 +76,7 @@ public class ObfuscationMapper {
     private static boolean is_cached = false;
     private static boolean output_unmatched = false;
     private static String validation_mappings = null;
+    private static String seed_mappings = null;
 
     static {
         flags.put("--config=", (arg) -> {
@@ -85,6 +86,9 @@ public class ObfuscationMapper {
         });
         flags.put("--validation=", (arg) -> {
             validation_mappings = arg.substring(13);
+        });
+        flags.put("--seed=", (arg) -> {
+            seed_mappings = arg.substring(7);
         });
         flags.put("--cache", (arg) -> {
             is_cached = true;
@@ -146,7 +150,17 @@ public class ObfuscationMapper {
         }
 
         MappingsSet old_mappings = MappingsIO.load(old_mappings_root);
-        MappingsSet new_mappings = new MappingsSet();
+        MappingsSet new_mappings = null;
+        if (seed_mappings != null) {
+            Path seed = root.resolve(seed_mappings);
+            if (!Files.exists(seed)) {
+                System.err.println("Unknown seed mappings: " + seed.toAbsolutePath().toString());
+                return;
+            }
+            new_mappings = MappingsIO.load(seed);
+        } else {
+            new_mappings = new MappingsSet();
+        }
 
         MappingsSet validation = null;
         if (validation_mappings != null) {

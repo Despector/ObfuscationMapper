@@ -26,19 +26,18 @@ package org.spongepowered.obfuscation.merge;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import org.spongepowered.despector.Language;
+import org.spongepowered.despector.ast.AstVisitor;
 import org.spongepowered.despector.ast.SourceSet;
 import org.spongepowered.despector.ast.generic.ClassTypeSignature;
-import org.spongepowered.despector.ast.generic.GenericClassTypeSignature;
 import org.spongepowered.despector.ast.generic.MethodSignature;
-import org.spongepowered.despector.ast.generic.TypeArgument;
-import org.spongepowered.despector.ast.generic.TypeParameter;
 import org.spongepowered.despector.ast.generic.TypeSignature;
-import org.spongepowered.despector.ast.generic.TypeVariableSignature;
 import org.spongepowered.despector.ast.type.ClassEntry;
 import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
 import org.spongepowered.despector.util.TypeHelper;
+import org.spongepowered.despector.util.serialization.MessagePacker;
 import org.spongepowered.obfuscation.data.MappingsSet;
 import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MatchEntry;
@@ -46,9 +45,9 @@ import org.spongepowered.obfuscation.merge.data.MethodGroup;
 import org.spongepowered.obfuscation.merge.data.MethodMatchEntry;
 import org.spongepowered.obfuscation.util.MethodGroupBuilder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -321,6 +320,28 @@ public class MergeEngine {
 
     public void merge() {
 
+        for (String type : this.new_mappings.getMappedTypes()) {
+            TypeEntry new_type = this.new_src.get(type);
+            if (new_type == null) {
+                continue;
+            }
+            String mapped = this.new_mappings.mapType(type);
+            String old = this.old_mappings.inverseType(mapped);
+            if (old != null) {
+                TypeEntry old_type = this.old_src.get(old);
+                if (old_type != null) {
+                    MatchEntry match = getPendingMatch(old_type);
+                    match.setNewType(new_type);
+                    setAsMatched(match);
+                    continue;
+                }
+            }
+            TypeEntry dummy = createDummyType(this.old_src, old);
+            MatchEntry match = getPendingMatch(dummy);
+            match.setNewType(new_type);
+            setAsMatched(match);
+        }
+
         generateSubtypes();
         generateMethodGroups();
 
@@ -430,6 +451,11 @@ public class MergeEngine {
         new_builder.build();
     }
 
+    public static TypeEntry createDummyType(SourceSet set, String name) {
+        TypeEntry type = new DummyType(set, Language.JAVA, name);
+        return type;
+    }
+
     public static FieldEntry createDummyField(SourceSet set, String name, TypeSignature desc, String owner) {
         FieldEntry fld = new DummyField(set);
         fld.setName(name);
@@ -465,6 +491,22 @@ public class MergeEngine {
         @Override
         public void operate(MergeEngine set) {
         }
+    }
+
+    public static class DummyType extends TypeEntry {
+
+        public DummyType(SourceSet source, Language lang, String name) {
+            super(source, lang, name);
+        }
+
+        @Override
+        public void accept(AstVisitor visitor) {
+        }
+
+        @Override
+        public void writeTo(MessagePacker pack) throws IOException {
+        }
+
     }
 
     public static class DummyMethod extends MethodEntry {

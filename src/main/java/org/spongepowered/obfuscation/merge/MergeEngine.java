@@ -93,6 +93,16 @@ public class MergeEngine {
         this.new_mappings = newmap;
     }
 
+    @SuppressWarnings("unchecked")
+    public <T extends MergeOperation> T getOperation(Class<T> type) {
+        for (MergeOperation op : this.operations) {
+            if (type.isInstance(op)) {
+                return (T) op;
+            }
+        }
+        return null;
+    }
+
     public SourceSet getOldSourceSet() {
         return this.old_src;
     }

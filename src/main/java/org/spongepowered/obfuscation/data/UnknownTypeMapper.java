@@ -31,19 +31,25 @@ import org.spongepowered.despector.ast.type.EnumEntry;
 import org.spongepowered.despector.ast.type.FieldEntry;
 import org.spongepowered.despector.ast.type.InterfaceEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
+import org.spongepowered.despector.ast.type.TypeEntry;
 import org.spongepowered.despector.ast.type.TypeVisitor;
+import org.spongepowered.obfuscation.merge.MergeEngine;
 
 public class UnknownTypeMapper implements TypeVisitor {
 
     private final MappingsSet mappings;
+    private final UnknownPackageDiscovery packages;
 
     private int next_type = 0;
 
-    public UnknownTypeMapper(MappingsSet set) {
+    public UnknownTypeMapper(MergeEngine engine, MappingsSet set) {
         this.mappings = set;
+        this.packages = new UnknownPackageDiscovery(engine);
+        this.packages.build();
     }
 
-    private String mapName(String type) {
+    private String mapName(TypeEntry typeentry) {
+        String type = typeentry.getName();
         String mapped = this.mappings.mapType(type);
         String mapped_child = null;
         if (mapped != null && type.lastIndexOf('$') != -1) {
@@ -53,8 +59,9 @@ public class UnknownTypeMapper implements TypeVisitor {
         if (mapped == null) {
             if (type.lastIndexOf('$') != -1) {
                 String parent = type.substring(0, type.lastIndexOf('$'));
+                TypeEntry parent_type = typeentry.getSource().get(parent);
                 String child = type.substring(type.lastIndexOf('$') + 1, type.length());
-                String mapped_parent = mapName(parent);
+                String mapped_parent = mapName(parent_type);
                 if (mapped_child == null) {
                     try {
                         int index = Integer.valueOf(child);
@@ -73,7 +80,8 @@ public class UnknownTypeMapper implements TypeVisitor {
                 this.mappings.addTypeMapping(type, mapped);
                 return mapped;
             }
-            mapped = String.format("net/minecraft/unknown/CL_%04d_%s", this.next_type++, type);
+            String pkg = this.packages.getPackage(typeentry);
+            mapped = String.format("%s/CL_%04d_%s", pkg, this.next_type++, type);
             this.mappings.addTypeMapping(type, mapped);
         }
         return mapped;
@@ -81,22 +89,22 @@ public class UnknownTypeMapper implements TypeVisitor {
 
     @Override
     public void visitClassEntry(ClassEntry type) {
-        mapName(type.getName());
+        mapName(type);
     }
 
     @Override
     public void visitEnumEntry(EnumEntry type) {
-        mapName(type.getName());
+        mapName(type);
     }
 
     @Override
     public void visitInterfaceEntry(InterfaceEntry type) {
-        mapName(type.getName());
+        mapName(type);
     }
 
     @Override
     public void visitAnnotationEntry(AnnotationEntry type) {
-        mapName(type.getName());
+        mapName(type);
     }
 
     @Override

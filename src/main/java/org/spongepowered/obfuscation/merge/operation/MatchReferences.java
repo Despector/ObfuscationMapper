@@ -96,34 +96,34 @@ import java.util.Map;
 public class MatchReferences implements MergeOperation {
 
     private boolean prepared = false;
-    private final Multimap<FieldEntry, MethodEntry> old_field_accesses = HashMultimap.create();
-    private final Multimap<FieldEntry, MethodEntry> old_field_assignments = HashMultimap.create();
-    private final Multimap<FieldEntry, MethodEntry> new_field_accesses = HashMultimap.create();
-    private final Multimap<FieldEntry, MethodEntry> new_field_assignments = HashMultimap.create();
+    public final Multimap<FieldEntry, MethodEntry> old_field_accesses = HashMultimap.create();
+    public final Multimap<FieldEntry, MethodEntry> old_field_assignments = HashMultimap.create();
+    public final Multimap<FieldEntry, MethodEntry> new_field_accesses = HashMultimap.create();
+    public final Multimap<FieldEntry, MethodEntry> new_field_assignments = HashMultimap.create();
 
-    private final Multimap<String, MethodEntry> old_ext_accesses = HashMultimap.create();
-    private final Multimap<String, MethodEntry> old_ext_assignments = HashMultimap.create();
-    private final Multimap<String, MethodEntry> new_ext_accesses = HashMultimap.create();
-    private final Multimap<String, MethodEntry> new_ext_assignments = HashMultimap.create();
+    public final Multimap<String, MethodEntry> old_ext_accesses = HashMultimap.create();
+    public final Multimap<String, MethodEntry> old_ext_assignments = HashMultimap.create();
+    public final Multimap<String, MethodEntry> new_ext_accesses = HashMultimap.create();
+    public final Multimap<String, MethodEntry> new_ext_assignments = HashMultimap.create();
 
-    private final Multimap<MethodEntry, MethodEntry> old_method_invokes = HashMultimap.create();
-    private final Multimap<MethodEntry, MethodEntry> new_method_invokes = HashMultimap.create();
+    public final Multimap<MethodEntry, MethodEntry> old_method_invokes = HashMultimap.create();
+    public final Multimap<MethodEntry, MethodEntry> new_method_invokes = HashMultimap.create();
 
-    private final Multimap<String, MethodEntry> old_ext_invokes = HashMultimap.create();
-    private final Multimap<String, MethodEntry> new_ext_invokes = HashMultimap.create();
+    public final Multimap<String, MethodEntry> old_ext_invokes = HashMultimap.create();
+    public final Multimap<String, MethodEntry> new_ext_invokes = HashMultimap.create();
 
-    private final Multimap<TypeEntry, MethodEntry> old_inits = HashMultimap.create();
-    private final Multimap<TypeEntry, MethodEntry> new_inits = HashMultimap.create();
-    private final Multimap<String, MethodEntry> old_ext_inits = HashMultimap.create();
-    private final Multimap<String, MethodEntry> new_ext_inits = HashMultimap.create();
+    public final Multimap<TypeEntry, MethodEntry> old_inits = HashMultimap.create();
+    public final Multimap<TypeEntry, MethodEntry> new_inits = HashMultimap.create();
+    public final Multimap<String, MethodEntry> old_ext_inits = HashMultimap.create();
+    public final Multimap<String, MethodEntry> new_ext_inits = HashMultimap.create();
 
-    private final Multimap<TypeEntry, MethodEntry> old_array_inits = HashMultimap.create();
-    private final Multimap<TypeEntry, MethodEntry> new_array_inits = HashMultimap.create();
-    private final Multimap<String, MethodEntry> old_ext_array_inits = HashMultimap.create();
-    private final Multimap<String, MethodEntry> new_ext_array_inits = HashMultimap.create();
+    public final Multimap<TypeEntry, MethodEntry> old_array_inits = HashMultimap.create();
+    public final Multimap<TypeEntry, MethodEntry> new_array_inits = HashMultimap.create();
+    public final Multimap<String, MethodEntry> old_ext_array_inits = HashMultimap.create();
+    public final Multimap<String, MethodEntry> new_ext_array_inits = HashMultimap.create();
 
-    private final Map<MethodEntry, TypeEntry> old_anons = new HashMap<>();
-    private final Map<MethodEntry, TypeEntry> new_anons = new HashMap<>();
+    public final Map<MethodEntry, TypeEntry> old_anons = new HashMap<>();
+    public final Map<MethodEntry, TypeEntry> new_anons = new HashMap<>();
 
     private void prep(MergeEngine set) {
         RefFinder new_finder = new RefFinder(set.getNewSourceSet(), this.new_field_accesses, this.new_field_assignments,

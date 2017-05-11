@@ -346,7 +346,7 @@ public class MergeEngine {
                     continue;
                 }
             }
-            TypeEntry dummy = createDummyType(this.old_src, old);
+            TypeEntry dummy = createDummyType(this.old_src, "dummy" + new_type.getName());
             MatchEntry match = getPendingMatch(dummy);
             match.setNewType(new_type);
             setAsMatched(match);

@@ -124,17 +124,18 @@ public class MethodMatchEntry {
     }
 
     public void removeVote(MethodEntry n) {
-        this.votes.remove(n);
-        this.second = 0;
-        this.highest = 0;
-        this.highest_type = null;
-        for (Map.Entry<MethodEntry, Integer> e : this.votes.entrySet()) {
-            if (e.getValue() > this.highest) {
-                this.second = this.highest;
-                this.highest = e.getValue();
-                this.highest_type = e.getKey();
-            } else if (e.getValue() > this.second) {
-                this.second = e.getValue();
+        if (this.votes.remove(n) != null) {
+            this.second = 0;
+            this.highest = 0;
+            this.highest_type = null;
+            for (Map.Entry<MethodEntry, Integer> e : this.votes.entrySet()) {
+                if (e.getValue() > this.highest) {
+                    this.second = this.highest;
+                    this.highest = e.getValue();
+                    this.highest_type = e.getKey();
+                } else if (e.getValue() > this.second) {
+                    this.second = e.getValue();
+                }
             }
         }
     }

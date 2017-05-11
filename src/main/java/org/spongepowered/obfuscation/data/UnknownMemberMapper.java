@@ -26,10 +26,13 @@ package org.spongepowered.obfuscation.data;
 
 import org.spongepowered.despector.ast.Annotation;
 import org.spongepowered.despector.ast.generic.VoidTypeSignature;
+import org.spongepowered.despector.ast.insn.cst.StringConstant;
 import org.spongepowered.despector.ast.stmt.Statement;
 import org.spongepowered.despector.ast.stmt.StatementBlock;
+import org.spongepowered.despector.ast.stmt.assign.StaticFieldAssignment;
 import org.spongepowered.despector.ast.stmt.invoke.InstanceMethodInvoke;
 import org.spongepowered.despector.ast.stmt.invoke.InvokeStatement;
+import org.spongepowered.despector.ast.stmt.invoke.New;
 import org.spongepowered.despector.ast.stmt.misc.Return;
 import org.spongepowered.despector.ast.type.AnnotationEntry;
 import org.spongepowered.despector.ast.type.ClassEntry;
@@ -39,6 +42,7 @@ import org.spongepowered.despector.ast.type.InterfaceEntry;
 import org.spongepowered.despector.ast.type.MethodEntry;
 import org.spongepowered.despector.ast.type.TypeEntry;
 import org.spongepowered.despector.ast.type.TypeVisitor;
+import org.spongepowered.despector.util.TypeHelper;
 import org.spongepowered.obfuscation.merge.MergeEngine;
 import org.spongepowered.obfuscation.merge.data.FieldMatchEntry;
 import org.spongepowered.obfuscation.merge.data.MethodGroup;
@@ -54,11 +58,17 @@ public class UnknownMemberMapper implements TypeVisitor {
 
     private final Map<MethodEntry, MethodEntry> synthetic_overloads = new HashMap<>();
 
+    private Map<FieldEntry, String> enum_names = new HashMap<>();
+    private EnumEntry current_type;
     private int next_type = 0;
 
     public UnknownMemberMapper(MappingsSet set, MergeEngine engine) {
         this.mappings = set;
         this.engine = engine;
+    }
+
+    public int getNext() {
+        return this.next_type;
     }
 
     private void findSyntheticOverloads(TypeEntry type) {
@@ -110,6 +120,8 @@ public class UnknownMemberMapper implements TypeVisitor {
     @Override
     public void visitEnumEntry(EnumEntry type) {
         findSyntheticOverloads(type);
+        this.enum_names = null;
+        this.current_type = type;
     }
 
     @Override
@@ -176,14 +188,47 @@ public class UnknownMemberMapper implements TypeVisitor {
             if (match != null && match.getOldField() instanceof MergeEngine.DummyField) {
                 mapped = match.getOldField().getName();
             } else {
-                mapped = String.format("fld_%04d_%s", this.next_type++, fld.getName());
+                if (this.current_type != null) {
+                    checkEnumConstants();
+                    mapped = this.enum_names.get(fld);
+                }
+                if (mapped == null) {
+                    mapped = String.format("fld_%04d_%s", this.next_type++, fld.getName());
+                }
             }
             this.mappings.addFieldMapping(fld.getOwnerName(), fld.getName(), mapped);
         }
     }
 
+    private void checkEnumConstants() {
+        if (this.enum_names == null) {
+            this.enum_names = new HashMap<>();
+            MethodEntry clinit = this.current_type.getStaticMethod("<clinit>");
+            for (Statement stmt : clinit.getInstructions()) {
+                if (!(stmt instanceof StaticFieldAssignment)) {
+                    break;
+                }
+                StaticFieldAssignment assign = (StaticFieldAssignment) stmt;
+                if (assign.getFieldName().contains("$VALUES")) {
+                    continue;
+                }
+                if (!TypeHelper.descToType(assign.getOwnerType()).equals(this.current_type.getName()) || !(assign.getValue() instanceof New)) {
+                    break;
+                }
+                FieldEntry assigned = this.current_type.getStaticField(assign.getFieldName());
+                if (assigned == null) {
+                    continue;
+                }
+                New n = (New) assign.getValue();
+                String name = ((StringConstant) n.getParameters()[0]).getConstant();
+                this.enum_names.put(assigned, name);
+            }
+        }
+    }
+
     @Override
     public void visitTypeEnd() {
+        this.current_type = null;
     }
 
 }

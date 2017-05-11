@@ -343,7 +343,7 @@ public class ObfuscationMapper {
         new_sourceset.accept(unknown);
 
         Path mappings_out = root.resolve(output_mappings);
-        MappingsIO.write(mappings_out.toAbsolutePath(), new_mappings);
+        MappingsIO.write(mappings_out.toAbsolutePath(), new_mappings, unknown.getNext());
 
     }
 

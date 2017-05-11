@@ -37,7 +37,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Utilities for reading and writing SRG files.
@@ -109,7 +111,7 @@ public final class MappingsIO {
     /**
      * Writes the given mappings set to the given file following the srg format.
      */
-    public static void write(Path out, MappingsSet mappings) throws IOException {
+    public static void write(Path out, MappingsSet mappings, int next_member) throws IOException {
         Files.createDirectories(out.getParent());
         try (FileWriter writer = new FileWriter(out.toFile())) {
             // standard packages
@@ -140,6 +142,7 @@ public final class MappingsIO {
 
             List<String> mth_keys = Lists.newArrayList(mappings.getMappedMethods());
             Collections.sort(mth_keys);
+            Set<String> seen_mth = new HashSet<>();
             for (String key : mth_keys) {
                 Collection<MethodMapping> overloads = mappings.getMethods(key);
                 for (MethodMapping overload : overloads) {
@@ -150,9 +153,13 @@ public final class MappingsIO {
                     if (mapped_owner == null) {
                         continue;
                     }
-                    writer.write("MD: " + key + " " + overload.getObfSignature() + " " + mapped_owner + "/"
-                            + overload.getMapped() + " " + overload.getMappedSignature() + "\n");
-
+                    String mapped_key = mapped_owner + "/" + overload.getMapped() + " " + overload.getMappedSignature();
+                    if (seen_mth.contains(mapped_key)) {
+                        mapped_key = mapped_owner + "/mth_" + next_member + "_" + overload.getObf() + " " + overload.getMappedSignature();
+                        next_member++;
+                    }
+                    seen_mth.add(mapped_key);
+                    writer.write("MD: " + key + " " + overload.getObfSignature() + " " + mapped_key + "\n");
                 }
             }
         }

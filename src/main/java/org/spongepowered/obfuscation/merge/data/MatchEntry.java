@@ -27,6 +27,7 @@ package org.spongepowered.obfuscation.merge.data;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.spongepowered.despector.ast.type.TypeEntry;
+import org.spongepowered.obfuscation.merge.MergeEngine.DummyType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -55,7 +56,7 @@ public class MatchEntry {
     }
 
     public void setNewType(TypeEntry type) {
-        if (this.old_type.getClass() != type.getClass()) {
+        if (!(this.old_type instanceof DummyType) && this.old_type.getClass() != type.getClass()) {
             throw new IllegalStateException(
                     "Attempted to match " + this.old_type.getClass().getSimpleName() + " to " + type.getClass().getSimpleName());
         }

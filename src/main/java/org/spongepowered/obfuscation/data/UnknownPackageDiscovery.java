@@ -64,9 +64,10 @@ import org.spongepowered.despector.ast.stmt.branch.Switch.Case;
 import org.spongepowered.despector.ast.stmt.branch.TryCatch;
 import org.spongepowered.despector.ast.stmt.branch.TryCatch.CatchBlock;
 import org.spongepowered.despector.ast.stmt.branch.While;
-import org.spongepowered.despector.ast.stmt.invoke.DynamicInvoke;
 import org.spongepowered.despector.ast.stmt.invoke.InstanceMethodInvoke;
 import org.spongepowered.despector.ast.stmt.invoke.InvokeStatement;
+import org.spongepowered.despector.ast.stmt.invoke.Lambda;
+import org.spongepowered.despector.ast.stmt.invoke.MethodReference;
 import org.spongepowered.despector.ast.stmt.invoke.New;
 import org.spongepowered.despector.ast.stmt.invoke.StaticMethodInvoke;
 import org.spongepowered.despector.ast.stmt.misc.Comment;
@@ -318,7 +319,7 @@ public class UnknownPackageDiscovery {
         }
 
         @Override
-        public void visitDynamicInvoke(DynamicInvoke insn) {
+        public void visitDynamicInvoke(Lambda insn) {
         }
 
         @Override
@@ -455,6 +456,12 @@ public class UnknownPackageDiscovery {
 
         @Override
         public void visitWhile(While whileLoop) {
+        }
+
+        @Override
+        public void visitMethodReference(MethodReference methodReference) {
+            // TODO Auto-generated method stub
+            
         }
 
     }

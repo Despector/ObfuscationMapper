@@ -45,8 +45,9 @@ import org.spongepowered.despector.ast.insn.var.ArrayAccess;
 import org.spongepowered.despector.ast.insn.var.InstanceFieldAccess;
 import org.spongepowered.despector.ast.insn.var.LocalAccess;
 import org.spongepowered.despector.ast.insn.var.StaticFieldAccess;
-import org.spongepowered.despector.ast.stmt.invoke.DynamicInvoke;
 import org.spongepowered.despector.ast.stmt.invoke.InstanceMethodInvoke;
+import org.spongepowered.despector.ast.stmt.invoke.Lambda;
+import org.spongepowered.despector.ast.stmt.invoke.MethodReference;
 import org.spongepowered.despector.ast.stmt.invoke.New;
 import org.spongepowered.despector.ast.stmt.invoke.StaticMethodInvoke;
 import org.spongepowered.despector.ast.type.MethodEntry;
@@ -153,7 +154,7 @@ public class MatchStringConstants implements MergeOperation {
         }
 
         @Override
-        public void visitDynamicInvoke(DynamicInvoke insn) {
+        public void visitDynamicInvoke(Lambda insn) {
         }
 
         @Override
@@ -230,6 +231,10 @@ public class MatchStringConstants implements MergeOperation {
 
         @Override
         public void visitMultiNewArray(MultiNewArray insn) {
+        }
+
+        @Override
+        public void visitMethodReference(MethodReference methodReference) {
         }
 
     }

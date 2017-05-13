@@ -71,9 +71,9 @@ import org.spongepowered.despector.ast.stmt.branch.Switch.Case;
 import org.spongepowered.despector.ast.stmt.branch.TryCatch;
 import org.spongepowered.despector.ast.stmt.branch.TryCatch.CatchBlock;
 import org.spongepowered.despector.ast.stmt.branch.While;
-import org.spongepowered.despector.ast.stmt.invoke.DynamicInvoke;
 import org.spongepowered.despector.ast.stmt.invoke.InstanceMethodInvoke;
 import org.spongepowered.despector.ast.stmt.invoke.InvokeStatement;
+import org.spongepowered.despector.ast.stmt.invoke.Lambda;
 import org.spongepowered.despector.ast.stmt.invoke.New;
 import org.spongepowered.despector.ast.stmt.invoke.StaticMethodInvoke;
 import org.spongepowered.despector.ast.stmt.misc.Comment;
@@ -669,7 +669,7 @@ public class MergeUtil {
             }
             return true;
         });
-        create(DynamicInvoke.class, (set, a, b) -> {
+        create(Lambda.class, (set, a, b) -> {
             if (!merge(set, a.getType(), b.getType())) {
                 return false;
             }

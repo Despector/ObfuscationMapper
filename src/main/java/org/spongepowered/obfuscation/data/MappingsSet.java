@@ -42,6 +42,7 @@ public class MappingsSet {
     private final BiMap<String, String> classes = HashBiMap.create();
     private final BiMap<String, String> fields = HashBiMap.create();
     private final Multimap<String, MethodMapping> methods = HashMultimap.create();
+    private final Multimap<String, MethodMapping> inverse_methods = HashMultimap.create();
 
     private boolean modified = false;
 
@@ -305,6 +306,16 @@ public class MappingsSet {
         return method;
     }
 
+    public String inverseMethod(String owner, String method, String obf_desc) {
+        String key = owner + "/" + method;
+        for (MethodMapping pos : this.inverse_methods.get(key)) {
+            if (pos.obfuscated_signature.equals(obf_desc)) {
+                return pos.obf_method;
+            }
+        }
+        return null;
+    }
+
     /**
      * Adds a new method mapping.
      */
@@ -320,6 +331,8 @@ public class MappingsSet {
         if (existing == null) {
             MethodMapping mapping = new MethodMapping(this, obfuscated_owner, obfuscated_method, obfuscated_signature, mapped_method);
             this.methods.put(key, mapping);
+            String mapped_owner = mapTypeSafe(obfuscated_owner);
+            this.inverse_methods.put(mapped_owner + "/" + mapped_method, mapping);
             this.modified = true;
         }
     }
@@ -465,12 +478,12 @@ public class MappingsSet {
 
         public static String mapSig(String desc, MappingsSet map) {
             String out = "(";
+            String accu = "";
             for (int i = 1; i < desc.length(); i++) {
                 char next = desc.charAt(i);
                 if (next == ')') {
                     break;
                 }
-                String accu = "";
                 if (next == '[') {
                     accu += next;
                 } else if (next == 'L') {

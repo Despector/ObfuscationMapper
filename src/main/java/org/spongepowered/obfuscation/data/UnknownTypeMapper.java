@@ -39,13 +39,15 @@ public class UnknownTypeMapper implements TypeVisitor {
 
     private final MappingsSet mappings;
     private final UnknownPackageDiscovery packages;
+    private final MappingsSet previous;
 
     private int next_type = 0;
 
-    public UnknownTypeMapper(MergeEngine engine, MappingsSet set) {
+    public UnknownTypeMapper(MergeEngine engine, MappingsSet set, MappingsSet previous) {
         this.mappings = set;
         this.packages = new UnknownPackageDiscovery(engine);
         this.packages.build();
+        this.previous = previous;
     }
 
     private String mapName(TypeEntry typeentry) {

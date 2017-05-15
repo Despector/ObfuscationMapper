@@ -55,6 +55,7 @@ public class UnknownMemberMapper implements TypeVisitor {
 
     private final MappingsSet mappings;
     private final MergeEngine engine;
+    private final MappingsSet previous;
 
     private final Map<MethodEntry, MethodEntry> synthetic_overloads = new HashMap<>();
 
@@ -62,9 +63,10 @@ public class UnknownMemberMapper implements TypeVisitor {
     private EnumEntry current_type;
     private int next_type = 0;
 
-    public UnknownMemberMapper(MappingsSet set, MergeEngine engine) {
+    public UnknownMemberMapper(MappingsSet set, MergeEngine engine, MappingsSet prev) {
         this.mappings = set;
         this.engine = engine;
+        this.previous = prev;
     }
 
     public int getNext() {
@@ -161,6 +163,17 @@ public class UnknownMemberMapper implements TypeVisitor {
         if (mth.getName().length() > 2) {
             return null;
         }
+        if (mapped == null && this.previous != null) {
+            String prev_mapped_owner = this.previous.mapType(mth.getOwnerName());
+            String mapped_owner = this.mappings.mapType(mth.getOwnerName());
+            if (mapped_owner.equals(prev_mapped_owner)) {
+                String prev = this.previous.mapMethod(mth.getOwnerName(), mth.getName(), mth.getDescription());
+                String inv = this.mappings.inverseMethod(mapped_owner, prev, mth.getDescription());
+                if (prev != null && inv == null) {
+                    return prev;
+                }
+            }
+        }
         mapped = String.format("mth_%04d_%s", this.next_type++, mth.getName());
         return mapped;
     }
@@ -191,6 +204,17 @@ public class UnknownMemberMapper implements TypeVisitor {
                 if (this.current_type != null) {
                     checkEnumConstants();
                     mapped = this.enum_names.get(fld);
+                }
+                if (mapped == null && this.previous != null) {
+                    String prev_mapped_owner = this.previous.mapField(fld.getOwnerName());
+                    String mapped_owner = this.mappings.mapType(fld.getOwnerName());
+                    if (mapped_owner.equals(prev_mapped_owner)) {
+                        String prev = this.previous.mapField(fld.getOwnerName(), fld.getName());
+                        String inv = this.mappings.inverseField(mapped_owner, prev);
+                        if (prev != null && inv == null) {
+                            mapped = prev;
+                        }
+                    }
                 }
                 if (mapped == null) {
                     mapped = String.format("fld_%04d_%s", this.next_type++, fld.getName());

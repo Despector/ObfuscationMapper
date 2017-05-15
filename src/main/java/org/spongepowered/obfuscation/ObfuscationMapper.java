@@ -77,6 +77,7 @@ public class ObfuscationMapper {
     private static boolean output_unmatched = false;
     private static String validation_mappings = null;
     private static String seed_mappings = null;
+    private static String prev_mappings = null;
 
     static {
         flags.put("--config=", (arg) -> {
@@ -89,6 +90,9 @@ public class ObfuscationMapper {
         });
         flags.put("--seed=", (arg) -> {
             seed_mappings = arg.substring(7);
+        });
+        flags.put("--previous=", (arg) -> {
+            prev_mappings = arg.substring(11);
         });
         flags.put("--cache", (arg) -> {
             is_cached = true;
@@ -171,6 +175,17 @@ public class ObfuscationMapper {
             } else {
                 System.out.println("Loading validation mappings");
                 validation = MappingsIO.load(validation_mappings_path);
+            }
+        }
+
+        MappingsSet previous = null;
+        if (prev_mappings != null) {
+            Path prev_mappings_path = root.resolve(prev_mappings);
+            if (!Files.exists(prev_mappings_path)) {
+                System.err.println("Previous mappings " + prev_mappings + " not found");
+            } else {
+                System.out.println("Loading previous mappings");
+                previous = MappingsIO.load(prev_mappings_path);
             }
         }
 
@@ -337,9 +352,9 @@ public class ObfuscationMapper {
             }
         }
 
-        UnknownTypeMapper unknown_type = new UnknownTypeMapper(engine, new_mappings);
+        UnknownTypeMapper unknown_type = new UnknownTypeMapper(engine, new_mappings, previous);
         new_sourceset.accept(unknown_type);
-        UnknownMemberMapper unknown = new UnknownMemberMapper(new_mappings, engine);
+        UnknownMemberMapper unknown = new UnknownMemberMapper(new_mappings, engine, previous);
         new_sourceset.accept(unknown);
 
         Path mappings_out = root.resolve(output_mappings);

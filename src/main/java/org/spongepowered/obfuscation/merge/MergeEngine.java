@@ -413,6 +413,9 @@ public class MergeEngine {
         }
 
         for (MethodMatchEntry entry : this.method_matches.values()) {
+            if (entry.getOldMethod().getName().startsWith("<")) {
+                continue;
+            }
             if (entry.getOldMethod() instanceof DummyMethod) {
                 MethodEntry mth = entry.getNewMethod();
                 if (this.new_mappings.mapType(mth.getOwnerName()) == null) {

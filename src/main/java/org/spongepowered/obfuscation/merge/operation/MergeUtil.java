@@ -504,8 +504,8 @@ public class MergeUtil {
                 return false;
             }
 
-            StatementBlock oinsn = a.getIfBody();
-            StatementBlock ninsn = b.getIfBody();
+            StatementBlock oinsn = a.getBody();
+            StatementBlock ninsn = b.getBody();
 
             for (int i = 0; i < oinsn.getStatementCount(); i++) {
                 if (i >= ninsn.getStatementCount()) {
@@ -543,8 +543,8 @@ public class MergeUtil {
             }
             if (a.getElseBlock() != null) {
 
-                StatementBlock oeinsn = a.getElseBlock().getElseBody();
-                StatementBlock neinsn = b.getElseBlock().getElseBody();
+                StatementBlock oeinsn = a.getElseBlock().getBody();
+                StatementBlock neinsn = b.getElseBlock().getBody();
 
                 for (int j = 0; j < oeinsn.getStatementCount(); j++) {
                     if (j >= neinsn.getStatementCount()) {

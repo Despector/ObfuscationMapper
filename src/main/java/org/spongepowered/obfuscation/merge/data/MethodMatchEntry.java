@@ -82,6 +82,9 @@ public class MethodMatchEntry {
         if (this.owner_match != null && !n.getOwnerName().equals(this.owner_match.getName())) {
             return false;
         }
+        if (this.old_mth.getName().startsWith("<") ^ n.getName().startsWith("<")) {
+            return false;
+        }
         Integer v = this.votes.get(n);
         if (v != null) {
             int vote = v + 1;

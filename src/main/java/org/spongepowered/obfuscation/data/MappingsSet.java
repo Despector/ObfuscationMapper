@@ -159,6 +159,7 @@ public class MappingsSet {
         String existing = this.classes.get(obfuscated_type);
         if (existing != null && !existing.equals(mapped_type)) {
             System.out.println("Existing class mapping for " + obfuscated_type + " from " + existing + " to " + mapped_type);
+            return;
         }
         this.classes.put(obfuscated_type, mapped_type);
         this.modified = true;
@@ -236,12 +237,15 @@ public class MappingsSet {
         String key = owner + "/" + old;
         String existing = this.fields.get(key);
         if (existing != null) {
-            System.out.println("Updating field mapping for " + key + " from " + existing + " to " + mapped);
+            System.out.println("Existing field mapping for " + key + " from " + existing + " to " + mapped);
             return;
         }
         String mapped_owner = mapType(owner);
         if (mapped_owner == null) {
             throw new IllegalStateException("Tried to map field before type");
+        } else if(this.fields.containsValue(mapped_owner + "/" + mapped)) {
+            System.out.println("Existing field mapping for value " + mapped_owner + "/" + mapped + " from " + existing + " to " + key);
+            return;
         }
         this.fields.put(key, mapped_owner + "/" + mapped);
         this.modified = true;

@@ -84,6 +84,9 @@ public class ObfuscationMapper {
             String config = arg.substring(9);
             Path config_path = Paths.get(".").resolve(config);
             ObfConfigManager.load(config_path);
+            if (!Files.exists(config_path)) {
+                ObfConfigManager.update();
+            }
         });
         flags.put("--validation=", (arg) -> {
             validation_mappings = arg.substring(13);
@@ -210,6 +213,11 @@ public class ObfuscationMapper {
             long end = System.nanoTime();
             System.out.println("Loaded and decompiled " + old_sourceset.getAllClasses().size() + " classes from the older version");
             System.out.println("Loaded in " + ((end - start) / 1000000) + "ms");
+            int failed = LibraryConfiguration.failed_method_count;
+            int total = LibraryConfiguration.total_method_count;
+            System.out.println("Failed to decompile " + failed + "/" + total + " (" + ((failed / (float) total) * 100) + "%)");
+            LibraryConfiguration.failed_method_count = 0;
+            LibraryConfiguration.total_method_count = 0;
             if (is_cached) {
                 try (MessagePacker packer = new MessagePacker(new FileOutputStream(old_serialized.toFile()))) {
                     old_sourceset.writeTo(packer);
@@ -232,6 +240,11 @@ public class ObfuscationMapper {
             long end = System.nanoTime();
             System.out.println("Loaded and decompiled " + new_sourceset.getAllClasses().size() + " classes from the newer version");
             System.out.println("Loaded in " + ((end - start) / 1000000) + "ms");
+            int failed = LibraryConfiguration.failed_method_count;
+            int total = LibraryConfiguration.total_method_count;
+            System.out.println("Failed to decompile " + failed + "/" + total + " (" + ((failed / (float) total) * 100) + "%)");
+            LibraryConfiguration.failed_method_count = 0;
+            LibraryConfiguration.total_method_count = 0;
             if (is_cached) {
                 try (MessagePacker packer = new MessagePacker(new FileOutputStream(new_serialized.toFile()))) {
                     new_sourceset.writeTo(packer);

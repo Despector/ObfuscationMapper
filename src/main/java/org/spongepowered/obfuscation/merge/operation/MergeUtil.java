@@ -673,8 +673,8 @@ public class MergeUtil {
             if (!merge(set, a.getType(), b.getType())) {
                 return false;
             }
-            TypeEntry ao = set.getOldSourceSet().get(a.getLambdaOwner());
-            TypeEntry bo = set.getNewSourceSet().get(b.getLambdaOwner());
+            TypeEntry ao = set.getOldSourceSet().get(TypeHelper.descToType(a.getLambdaOwner()));
+            TypeEntry bo = set.getNewSourceSet().get(TypeHelper.descToType(b.getLambdaOwner()));
             if (ao == null || bo == null) {
                 if (!a.getLambdaOwner().equals(b.getLambdaOwner())) {
                     return false;

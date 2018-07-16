@@ -228,6 +228,9 @@ public class UnknownMemberMapper implements TypeVisitor {
         if (this.enum_names == null) {
             this.enum_names = new HashMap<>();
             MethodEntry clinit = this.current_type.getStaticMethod("<clinit>");
+            if(clinit == null) {
+                return;
+            }
             for (Statement stmt : clinit.getInstructions()) {
                 if (!(stmt instanceof StaticFieldAssignment)) {
                     break;
